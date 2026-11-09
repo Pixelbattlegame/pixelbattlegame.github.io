@@ -152,9 +152,13 @@ h2{font-family:var(--display);font-weight:400;font-size:20px;margin:0;line-heigh
 .who{background:rgba(26,28,44,.85);border-left:5px solid var(--c);padding:3px 8px;font:600 14px var(--body)}
 .who.done{border-left-color:var(--l);color:var(--l)}
 @media (max-width:860px), (max-aspect-ratio: 1/1){
-  #vDraw{grid-template-rows:auto auto auto auto;align-content:start;overflow-y:auto}
+  #vDraw{grid-template-rows:auto max-content auto;align-content:start;overflow-y:auto}
+  #vDraw .dmain{min-height:auto}
+  .dstatus{order:4;min-height:26px;flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;scrollbar-width:none;gap:4px;padding-bottom:2px}
+  .dstatus::-webkit-scrollbar{display:none}
+  .dstatus .who{font-size:13px;padding:2px 6px;white-space:nowrap;flex:none}
   .dmain{grid-template-columns:minmax(0,1fr);gap:10px}
-  .board{width:min(100%, 560px, calc(100dvh - 300px));order:1;min-width:240px}
+  .board{width:min(100%, 560px, calc(100dvh - 384px));order:1;min-width:240px}
   .palette{order:2;grid-template-columns:repeat(8,minmax(0,40px));gap:4px;width:100%;justify-content:center}
   .swatch{width:100%;height:auto;aspect-ratio:1}
   .palsel{grid-column:1/-1}
