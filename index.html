@@ -2650,8 +2650,8 @@ function lev(a, b){ if (Math.abs(a.length - b.length) > 2) return 9; const d = A
 const obf = (w, k) => btoa(Array.from(w, (c, i) => String.fromCharCode(c.charCodeAt(0) ^ k.charCodeAt(i % k.length))).join(''));
 const deobf = (s, k) => { try { return Array.from(atob(s), (c, i) => String.fromCharCode(c.charCodeAt(0) ^ k.charCodeAt(i % k.length))).join(''); } catch(e){ return ''; } };
 function chaHint(t, now){
-  // a new letter every 10 seconds, but never the whole word
-  const el = (now - (t.start || now)) / 1000, w = t.w, show = clamp(Math.floor(el / 10), 0, normW(w).length - 1);
+  // short words reveal letters more slowly (DOG: one every 25s), long words every 10s; never the whole word
+  const el = (now - (t.start || now)) / 1000, w = t.w, L = normW(w).length, every = Math.max(10, 50 / Math.max(1, L - 1)), show = clamp(Math.floor(el / every), 0, L - 1);
   return Array.from(w, (c, i) => c === ' ' ? '/' : t.rv.slice(0, show).includes(i) ? c : '_').join(' ');
 }
 function chaFeed(nm, text, type){ XG.feed.push([nm, String(text).slice(0, 40), type]); if (XG.feed.length > 12) XG.feed.shift(); }
