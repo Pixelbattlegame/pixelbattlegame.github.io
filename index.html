@@ -2582,21 +2582,20 @@ function duoEnterDraw(S){
   const myT = duoTeamOf(S, XC.me), team = S.tm[myT] || [];
   XC.partner = team.find(k => k !== XC.me) || '';
   XC.bot = null;
-  if (XC.partner.startsWith('b:')){ const b = S.bs[XC.partner] || [1, 1], art = up2(makeArt(S.th, b[0] >>> 0, clamp(b[1] | 0, 0, 2))); XC.bot = {art, order:paintOrder(art, PALS.pico.paper), i:0, t0:performance.now()}; }
+  if (XC.partner.startsWith('b:')){ const b = S.bs[XC.partner] || [1, 1]; XC.bot = botHelperSetup(up2(makeArt(S.th, b[0] >>> 0, clamp(b[1] | 0, 0, 2)))); setTimeout(() => toast(`${xName(S, XC.partner)} is your bot partner. It works around what you draw: outlines, details and the background.`), 900); }
   musicStart(); lastTickSec = -1; $('dDone').textContent = 'DONE'; $('dDone').disabled = false; $('dDone').hidden = false;
   if (NET.named) NET.named.presence({xr:0, xo:null, xf:null}).catch(() => {});
 }
 function duoStatus(S){
   const myT = Math.max(0, duoTeamOf(S, XC.me)), rd = new Set(S.rdy || []);
-  const tag = k => `<span class="who${rd.has(k) || k.startsWith('b:') ? ' done' : ''}">${esc(xName(S, k))}${k.startsWith('b:') ? ' (bot)' : rd.has(k) ? ' ✓' : ''}</span>`;
+  const tag = k => `<span class="who${rd.has(k) || k.startsWith('b:') ? ' done' : ''}">${esc(xName(S, k))}${k.startsWith('b:') ? (k === XC.partner && XC.bot && XC.bot.act ? ' · ' + XC.bot.act : ' (bot)') : rd.has(k) ? ' ✓' : ''}</span>`;
   const h = `<span class="who" style="border-left-color:var(--y)">YOUR TEAM</span>${S.tm[myT].map(tag).join('')}<span class="who" style="border-left-color:var(--q)">VS</span>${S.tm[1 - myT].map(tag).join('')}`;
   if (h !== XC.statKey){ XC.statKey = h; $('dStatus').innerHTML = h; }
 }
 // my strokes go out as small edits; my teammate's edits are painted onto my canvas as they arrive
 function duoSyncTick(now){
   const D = XC.ds; if (!D || !ED.grid || ED.n !== 64) return;
-  // bot teammate: paints its picture onto empty cells over the first two minutes
-  if (XC.bot && ED.enabled){ const B = XC.bot, want = Math.floor(B.order.length * clamp((now - B.t0) / 120000, 0, 1)); let changed = false; while (B.i < want){ const c = B.order[B.i++]; if (ED.grid[c] === PALS.pico.paper && ED.own[c] === 0){ ED.grid[c] = B.art[c]; ED.own[c] = 3; changed = true; } } if (changed) edChanged(); }
+  if (XC.bot && ED.enabled) botHelperTick(now);
   if (!NET.named || now - D.lastPub < 250) return;
   D.lastPub = now;
   for (let i = 0; i < 4096; i++) if (ED.grid[i] !== D.base[i]){ D.base[i] = ED.grid[i]; D.log.push(i << 5 | ED.grid[i]); D.n++; }
@@ -2623,6 +2622,72 @@ function duoSyncTick(now){
     st.a = xo.n; changed = true;
   }
   if (changed) edRender();
+}
+// ---------- the bot teammate ----------
+// It splits its own picture into background (sky, ground), small details (stars, clouds, grass) and the main subject.
+// It waits for you to start, then works around you: it outlines your shapes once you pause, adds details away from
+// your strokes and fills in the background last. It only draws the subject itself if you leave the canvas empty.
+function botHelperSetup(art){
+  const n = 64, cnt = new Array(32).fill(0);
+  for (let i = 0; i < n; i++) for (const j of [i, (n - 1) * n + i, i * n, i * n + n - 1]) cnt[art[j]]++;
+  const bg = cnt.indexOf(Math.max(...cnt)), seen = new Int32Array(n * n).fill(-1), comps = [];
+  for (let i = 0; i < n * n; i++){
+    if (art[i] === bg || seen[i] >= 0) continue;
+    const st = [i], cells = []; let edge = false; seen[i] = comps.length;
+    while (st.length){ const c = st.pop(), x = c % n, y = (c / n) | 0; cells.push(c); if (x === 0 || y === 0 || x === n - 1 || y === n - 1) edge = true;
+      for (const d of [c - 1, c + 1, c - n, c + n]){ if (d < 0 || d >= n * n || Math.abs((d % n) - x) > 1 || art[d] === bg || seen[d] >= 0) continue; seen[d] = comps.length; st.push(d); } }
+    comps.push({cells, edge});
+  }
+  const back = [], decor = [], subject = [];
+  for (let i = 0; i < n * n; i++) if (art[i] === bg) back.push(i);
+  for (const c of comps) (c.edge ? back : c.cells.length <= 40 ? decor : subject).push(...c.cells);
+  const byRow = (a, b) => a - b;
+  if (subject.length < 60){ subject.push(...decor.splice(0)); subject.push(...back.filter(c => art[c] !== bg)); }
+  return {art, back:back.sort(byRow), decor:decor.sort(() => Math.random() - .5), subject:subject.sort(byRow), t0:performance.now(), last:0, act:'', lastHuman:0, humanN:0, bi:0, di:0, si:0};
+}
+function botHelperTick(now){
+  const B = XC.bot, g = ED.grid, own = ED.own, paper = PALS.pico.paper, n = 64, el = (now - B.t0) / 1000;
+  if (now - B.last < 1000) return; B.last = now;
+  let human = 0; for (let i = 0; i < n * n; i++) if ((own[i] === 1 || own[i] === 2) && g[i] !== paper) human++;
+  if (human !== B.humanN){ B.humanN = human; B.lastHuman = now; }
+  const free = c => g[c] === paper && own[c] === 0;
+  // stay a couple of cells away from anything a person drew
+  const nearPerson = c => { const x = c % n, y = (c / n) | 0; for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++){ const xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= n || yy >= n) continue; const k = yy * n + xx; if ((own[k] === 1 || own[k] === 2) && g[k] !== paper) return true; } return false; };
+  let put = 0; const paint = (c, col) => { g[c] = col; own[c] = 3; put++; };
+  let act = '';
+  if (el < 12){ act = 'watching'; }
+  else if (human < 30){
+    // you haven't started: the bot sketches the subject, slowly
+    act = 'sketching';
+    while (B.si < B.subject.length && put < 5){ const c = B.subject[B.si++]; if (free(c) && !nearPerson(c)) paint(c, B.art[c]); }
+    // subject done (or there isn't one): details, then the background, still slowly
+    if (put < 5) while (B.di < B.decor.length && put < 5){ const c = B.decor[B.di++]; if (free(c) && !nearPerson(c)) paint(c, B.art[c]); }
+    if (put < 5 && el > 40) while (B.bi < B.back.length && put < 12){ const c = B.back[B.bi++]; if (free(c) && !nearPerson(c)){ paint(c, B.art[c]); act = 'background'; } }
+  } else {
+    const paused = now - B.lastHuman > 3000;
+    // outline your shapes once you pause
+    if (paused){
+      for (let i = 0; i < n * n && put < 10; i++){
+        if (!(own[i] === 1 && g[i] !== paper) || DARK[g[i]] === g[i]) continue;
+        const x = i % n, y = (i / n) | 0;
+        let solid = 0; for (const d of [i - 1, i + 1, i - n, i + n]) if (d >= 0 && d < n * n && own[d] === 1 && g[d] !== paper) solid++;
+        if (solid < 3) continue;   // filled shapes only, not thin lines
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]){ const xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= n || yy >= n) continue; const k = yy * n + xx; if (free(k)){ paint(k, DARK[DARK[g[i]]]); act = 'outlining'; } }
+      }
+    }
+    // small details away from your strokes
+    if (!put && el > 25) while (B.di < B.decor.length && put < 6){ const c = B.decor[B.di++]; if (free(c) && !nearPerson(c)){ paint(c, B.art[c]); act = 'adding details'; } }
+    // background last, from the top down, only while you pause, and never inside shapes you closed off
+    if (put < 4 && el > 45 && paused){
+      const out = new Uint8Array(n * n), st = [];
+      for (let i = 0; i < n; i++) for (const j of [i, (n - 1) * n + i, i * n, i * n + n - 1]) if (own[j] !== 1 && own[j] !== 2 && !out[j]){ out[j] = 1; st.push(j); }
+      while (st.length){ const c = st.pop(), x = c % n; for (const d of [c - 1, c + 1, c - n, c + n]){ if (d < 0 || d >= n * n || Math.abs((d % n) - x) > 1 || out[d] || own[d] === 1 || own[d] === 2) continue; out[d] = 1; st.push(d); } }
+      while (B.bi < B.back.length && put < 22){ const c = B.back[B.bi++]; if (free(c) && out[c]){ paint(c, B.art[c]); act = 'background'; } }
+    }
+    if (!act) act = paused ? 'waiting for you' : 'watching';
+  }
+  if (act !== B.act){ B.act = act; if (XC.s) duoStatus(XC.s); }
+  if (put) edChanged();
 }
 function duoFinal(){
   const D = XC.ds; if (!D || !NET.named) return;
