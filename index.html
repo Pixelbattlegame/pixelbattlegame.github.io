@@ -1267,7 +1267,7 @@ function recognize(g){
   }
   const out = {}; ART_MODEL.themes.forEach((t, k) => out[t] = P[k]); return out;
 }
-const JP = {we:.42, r0:.2, r1:.85, pw:1.5, mcap:1, mfloor:.14};
+const JP = {we:.42, r0:.2, r1:.82, pw:1.3, mcap:1, mfloor:.14, ef0:.4, ef1:.35, efh:3.8};
 const RANK_S = [.92, .78, .64, .52, .42, .34, .28];
 function effortOf(f){
   const n = f.filled;
@@ -1296,6 +1296,8 @@ function judgeRaw(grid, theme){
     // lots of 1-2 pixel specks usually means noise, unless the recognizer clearly sees the theme (stars, sparkles)
     raw *= 1 - clamp((f.speck - .12) / .45, 0, .75) * (1 - clamp((tm.p - .3) / .6, 0, 1));
     let score = 1 + 9 * Math.pow(clamp((raw - JP.r0) / JP.r1, 0, 1), JP.pw);
+    // the recognizer can miss a good drawing (it learned from bot art), so real effort always earns a fair score
+    score = Math.max(score, 1 + JP.efh * clamp((E - JP.ef0) / JP.ef1, 0, 1) * (1 - clamp((f.speck - .12) / .45, 0, 1)));
     if (f.filled < 30) score = Math.min(score, 2);
     if (f.colors <= 1) score = Math.min(score, 3.5);
     if (f.filled < 70 && f.comps < 3) score = Math.min(score, 3.5);
@@ -2897,7 +2899,7 @@ new MutationObserver(ms => { for (const m of ms){ if (m.type === 'characterData'
   if (!numRaf) numRaf = requestAnimationFrame(() => { numRaf = 0; const q = [...numQ]; numQ.clear(); for (const el of q) if (el && el.isConnected && !(el.closest && el.closest('.num'))) numWrap(el); }); })
   .observe(document.body, {childList:true, subtree:true, characterData:true});
 numWrap(document.body);
-window.__pbx = {get XG(){ return XG; }, XC, get appMode(){ return appMode; }, get MM(){ return MM; }, encAny, decAny};
+window.__pbx = {JP, features, effortOf, themeMatch, get XG(){ return XG; }, XC, get appMode(){ return appMode; }, get MM(){ return MM; }, encAny, decAny};
 window.__pb = {get GS(){ return GS; }, get NET(){ return NET; }, prof, rankDelta, tierOf, get RES(){ return RES; }, makeArt, judge, judgeRaw, JP, recognize, artFeatures, botVerdict, encGrid, decGrid, get mode(){ return appMode; }, ED, BOT_THEMES};
 window.__pbReady = 1; { const w = document.getElementById('jsWarn'); if (w) w.style.display = 'none'; }
 })();
