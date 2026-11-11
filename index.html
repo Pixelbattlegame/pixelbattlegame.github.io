@@ -266,7 +266,7 @@ body{margin:0}
       <div hidden><div class="lbl" style="margin-bottom:6px">Palette <span id="palCount"></span></div><div class="pals" id="pals" role="group" aria-label="Pick your palette"></div></div>
     </div>
     <div class="modes">
-      <button class="mode big m-red" id="bQuick"><b>QUICK PLAY</b><span>You vs 5 bot artists. 2 minutes to draw.</span></button>
+      <button class="mode big m-red" id="bQuick"><b>QUICK PLAY</b><span>You vs 7 bot artists. 2 minutes to draw.</span></button>
       <button class="mode m-yel" id="bFind"><b>FIND MATCH</b><span id="findSub">Get put in a lobby with real players online.</span></button>
       <button class="mode m-pur" id="bRanked"><b>RANKED</b><span id="rankSub">Real players. Place high to climb the ranks.</span></button>
       <button class="mode m-blue" id="bPrac"><b>PRACTICE</b><span>Solo. The bot judge scores you out of 10.</span></button>
@@ -1713,7 +1713,7 @@ $('dDone').onclick = () => {
   GS.end = performance.now();
 };
 const meHuman = () => ({nm:myName(), kind:'local', slot:0});
-$('bQuick').onclick = () => { auInit(); startLocal({humans:[meHuman()], bots:5, time:120}); };
+$('bQuick').onclick = () => { auInit(); startLocal({humans:[meHuman()], bots:7, time:120}); };
 $('bPrac').onclick = () => { auInit(); renderPracSetup(); show('scrPrac'); };
 $('bRanks').onclick = () => { auInit(); renderRanks(); show('scrRanks'); };
 // another tab or a finished match may have changed the saved rank points: always show the saved number
@@ -2250,7 +2250,7 @@ function startQueue(ranked){
 }
 function stopQueue(keep){ MM.on = false; clearInterval(MM.timer); if (!keep) setLobbyQ(null); }
 $('qCancel').onclick = () => { stopQueue(); if (NET.named) leaveRoom(); appMode = 'menu'; show('scrMenu'); refreshMenu(); };
-$('qBots').onclick = () => { stopQueue(); if (NET.named) leaveRoom(); startLocal({humans:[meHuman()], bots:5, time:120}); };
+$('qBots').onclick = () => { stopQueue(); if (NET.named) leaveRoom(); startLocal({humans:[meHuman()], bots:7, time:120}); };
 $('rFind').onclick = () => { auInit(); resTimers.forEach(clearTimeout); if (NET.named) leaveRoom(); GS = null; showView(null); startQueue(!!RES.ranked); };
 const qKey = () => (MM.ranked ? 'r' : 'q') + GAME_V;   // separate queues for ranked and casual, and for each game version
 const qOf = p => { const q = p.presence && p.presence[qKey()]; return q && typeof q.t === 'number' ? q : null; };
