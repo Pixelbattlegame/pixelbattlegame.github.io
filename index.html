@@ -2634,7 +2634,7 @@ function botHelperSetup(art){
   for (let i = 0; i < n * n; i++){
     if (art[i] === bg || seen[i] >= 0) continue;
     const st = [i], cells = []; let edge = false; seen[i] = comps.length;
-    while (st.length){ const c = st.pop(), x = c % n, y = (c / n) | 0; cells.push(c); if (x === 0 || y === 0 || x === n - 1 || y === n - 1) edge = true;
+    while (st.length){ const c = st.pop(), x = c % n, y = (c / n) | 0; cells.push(c); if (y === n - 1) edge = true;   // ground touches the bottom
       for (const d of [c - 1, c + 1, c - n, c + n]){ if (d < 0 || d >= n * n || Math.abs((d % n) - x) > 1 || art[d] === bg || seen[d] >= 0) continue; seen[d] = comps.length; st.push(d); } }
     comps.push({cells, edge});
   }
@@ -2648,44 +2648,48 @@ function botHelperSetup(art){
 function botHelperTick(now){
   const B = XC.bot, g = ED.grid, own = ED.own, paper = PALS.pico.paper, n = 64, el = (now - B.t0) / 1000;
   if (now - B.last < 1000) return; B.last = now;
-  let human = 0; for (let i = 0; i < n * n; i++) if ((own[i] === 1 || own[i] === 2) && g[i] !== paper) human++;
-  if (human !== B.humanN){ B.humanN = human; B.lastHuman = now; }
-  const free = c => g[c] === paper && own[c] === 0;
-  // stay a couple of cells away from anything a person drew
-  const nearPerson = c => { const x = c % n, y = (c / n) | 0; for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++){ const xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= n || yy >= n) continue; const k = yy * n + xx; if ((own[k] === 1 || own[k] === 2) && g[k] !== paper) return true; } return false; };
-  let put = 0; const paint = (c, col) => { g[c] = col; own[c] = 3; put++; };
-  let act = '';
-  if (el < 12){ act = 'watching'; }
-  else if (human < 30){
-    // you haven't started: the bot sketches the subject, slowly
-    act = 'sketching';
-    while (B.si < B.subject.length && put < 5){ const c = B.subject[B.si++]; if (free(c) && !nearPerson(c)) paint(c, B.art[c]); }
-    // subject done (or there isn't one): details, then the background, still slowly
-    if (put < 5) while (B.di < B.decor.length && put < 5){ const c = B.decor[B.di++]; if (free(c) && !nearPerson(c)) paint(c, B.art[c]); }
-    if (put < 5 && el > 40) while (B.bi < B.back.length && put < 12){ const c = B.back[B.bi++]; if (free(c) && !nearPerson(c)){ paint(c, B.art[c]); act = 'background'; } }
-  } else {
-    const paused = now - B.lastHuman > 3000;
-    // outline your shapes once you pause
-    if (paused){
-      for (let i = 0; i < n * n && put < 10; i++){
-        if (!(own[i] === 1 && g[i] !== paper) || DARK[g[i]] === g[i]) continue;
-        const x = i % n, y = (i / n) | 0;
-        let solid = 0; for (const d of [i - 1, i + 1, i - n, i + n]) if (d >= 0 && d < n * n && own[d] === 1 && g[d] !== paper) solid++;
-        if (solid < 3) continue;   // filled shapes only, not thin lines
-        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]){ const xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= n || yy >= n) continue; const k = yy * n + xx; if (free(k)){ paint(k, DARK[DARK[g[i]]]); act = 'outlining'; } }
-      }
+  // what people drew: count it, and remember where they drew in the last few seconds
+  const isP = i => (own[i] === 1 || own[i] === 2) && g[i] !== paper;
+  if (!B.prev) B.prev = new Uint8Array(n * n);
+  if (!B.recent) B.recent = [];
+  let human = 0;
+  for (let i = 0; i < n * n; i++){ const p = isP(i) ? 1 : 0; human += p; if (p && !B.prev[i]) B.recent.push([i, now]); B.prev[i] = p; }
+  if (B.recent.length && B.recent[B.recent.length - 1][1] === now) B.lastHuman = now;
+  B.recent = B.recent.filter(r => now - r[1] < 4000).slice(-300);
+  const busy = new Uint8Array(n * n);   // stay out of the way where someone is drawing right now
+  for (const [c] of B.recent){ const x = c % n, y = (c / n) | 0; for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++){ const xx = x + dx, yy = y + dy; if (xx >= 0 && yy >= 0 && xx < n && yy < n) busy[yy * n + xx] = 1; } }
+  const free = c => g[c] === paper && own[c] === 0 && !busy[c];
+  const nearPerson = c => { const x = c % n, y = (c / n) | 0; for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++){ const xx = x + dx, yy = y + dy; if (xx >= 0 && yy >= 0 && xx < n && yy < n && isP(yy * n + xx)) return true; } return false; };
+  let put = 0; const acts = []; const paint = (c, col) => { g[c] = col; own[c] = 3; put++; };
+  const take = (list, key, max, ok) => { let k = 0; while (B[key] < list.length && k < max){ const c = list[B[key]++]; if (free(c) && (!ok || ok(c))){ paint(c, B.art[c]); k++; } } return k; };
+  if (el < 8){ B.act = 'watching'; if (XC.s) duoStatus(XC.s); return; }
+  const paused = now - (B.lastHuman || 0) > 1500;
+  // 1. outline the shapes you filled in, whenever you stop for a moment
+  if (paused && human >= 20){ let k = 0;
+    for (let i = 0; i < n * n && k < 8; i++){
+      if (!isP(i) || DARK[g[i]] === g[i]) continue;
+      let solid = 0; for (const d of [i - 1, i + 1, i - n, i + n]) if (d >= 0 && d < n * n && isP(d)) solid++;
+      if (solid < 3) continue;
+      const x = i % n, y = (i / n) | 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]){ const xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= n || yy >= n) continue; const c = yy * n + xx; if (g[c] === paper && own[c] === 0){ paint(c, DARK[DARK[g[i]]]); k++; } }
     }
-    // small details away from your strokes
-    if (!put && el > 25) while (B.di < B.decor.length && put < 6){ const c = B.decor[B.di++]; if (free(c) && !nearPerson(c)){ paint(c, B.art[c]); act = 'adding details'; } }
-    // background last, from the top down, only while you pause, and never inside shapes you closed off
-    if (put < 4 && el > 45 && paused){
-      const out = new Uint8Array(n * n), st = [];
-      for (let i = 0; i < n; i++) for (const j of [i, (n - 1) * n + i, i * n, i * n + n - 1]) if (own[j] !== 1 && own[j] !== 2 && !out[j]){ out[j] = 1; st.push(j); }
-      while (st.length){ const c = st.pop(), x = c % n; for (const d of [c - 1, c + 1, c - n, c + n]){ if (d < 0 || d >= n * n || Math.abs((d % n) - x) > 1 || out[d] || own[d] === 1 || own[d] === 2) continue; out[d] = 1; st.push(d); } }
-      while (B.bi < B.back.length && put < 22){ const c = B.back[B.bi++]; if (free(c) && out[c]){ paint(c, B.art[c]); act = 'background'; } }
-    }
-    if (!act) act = paused ? 'waiting for you' : 'watching';
+    if (k) acts.push('outlining');
   }
+  // 2. nothing drawn yet: start the main picture so the canvas isn't empty
+  if (human < 30 && take(B.subject, 'si', 8, c => !nearPerson(c))) acts.push('sketching');
+  // 3. small details (stars, clouds, grass) away from your strokes
+  if (el > 10 && take(B.decor, 'di', 4, c => !nearPerson(c))) acts.push('details');
+  // 4. the background, from the top down, around your drawing (never inside shapes you closed off)
+  if (el > 15){
+    const out = new Uint8Array(n * n), st = [];
+    for (let i = 0; i < n; i++) for (const j of [i, (n - 1) * n + i, i * n, i * n + n - 1]) if (!isP(j) && !out[j]){ out[j] = 1; st.push(j); }
+    while (st.length){ const c = st.pop(), x = c % n; for (const d of [c - 1, c + 1, c - n, c + n]){ if (d < 0 || d >= n * n || Math.abs((d % n) - x) > 1 || out[d] || isP(d)) continue; out[d] = 1; st.push(d); } }
+    // cells skipped now (someone drawing nearby) go back in the queue for later
+    let k = 0, tries = 0;
+    while (B.bi < B.back.length && k < 14 && tries++ < 400){ const c = B.back[B.bi++]; if (g[c] !== paper || own[c] !== 0 || !out[c]) continue; if (busy[c]){ B.back.push(c); continue; } paint(c, B.art[c]); k++; }
+    if (k) acts.push('background');
+  }
+  const act = acts[0] || (B.bi >= B.back.length && B.di >= B.decor.length ? 'done, your turn' : 'watching');
   if (act !== B.act){ B.act = act; if (XC.s) duoStatus(XC.s); }
   if (put) edChanged();
 }
