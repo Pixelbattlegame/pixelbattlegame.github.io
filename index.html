@@ -1713,11 +1713,15 @@ const meHuman = () => ({nm:myName(), kind:'local', slot:0});
 $('bQuick').onclick = () => { auInit(); startLocal({humans:[meHuman()], bots:5, time:120}); };
 $('bPrac').onclick = () => { auInit(); renderPracSetup(); show('scrPrac'); };
 $('bRanks').onclick = () => { auInit(); renderRanks(); show('scrRanks'); };
+// another tab or a finished match may have changed the saved rank points: always show the saved number
+function syncRp(){ const saved = store.get('prof', {}); for (const k of ['rp', 'rg', 'rw', 'rpk', 'rlast', 'rpend']) if (k in saved) prof[k] = saved[k]; prof.rp = Math.max(0, Math.round(+prof.rp || 0)); }
+window.addEventListener('storage', e => { if (e.key === 'pixelbattle.prof' && appMode === 'menu'){ syncRp(); refreshMenu(); } });
 function renderRanks(){
-  const me = tierOf(prof.rp | 0);
+  syncRp(); refreshMenu();
+  const me = tierOf(prof.rp);
   $('tierList').innerHTML = TIERS.map(([rp, nm, col], i) => { const next = TIERS[i + 1];
     return `<li class="${i === me.i ? 'me' : ''}"><i style="background:${col}"></i><div><b style="color:${col}">${nm}</b>${i === me.i ? '<small>You are here</small>' : ''}</div><span>${next ? `${rp}–${next[0] - 1} RP` : `${rp}+ RP`}</span></li>`; }).join('');
-  $('tierNote').textContent = me.hi ? `You have ${prof.rp | 0} RP. ${me.hi - (prof.rp | 0)} more to reach ${TIERS[me.i + 1][1]}.` : `You have ${prof.rp | 0} RP. You're at the top rank!`;
+  $('tierNote').innerHTML = `YOUR RP: <b style="color:var(--y)">${prof.rp}</b><br>` + (me.hi ? `NEXT RANK: ${TIERS[me.i + 1][1]} at ${me.hi} RP (${me.hi - prof.rp} to go)` : `You're at the top rank!`);
 }
 $('bOnline').onclick = () => { auInit(); renderOnlineAvail(); show('scrOnline'); };
 document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => { show('scrMenu'); refreshMenu(); });
