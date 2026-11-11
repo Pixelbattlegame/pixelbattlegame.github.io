@@ -499,7 +499,7 @@ body{margin:0}
     <header class="topbar"><div><div class="lbl" id="xrLbl">Results</div><h2 id="xrTitle">RESULTS</h2></div></header>
     <div id="xrBody"></div>
     <div class="opt"><div class="lvl">LV <span id="xrLvl">1</span><div class="xpbar"><i id="xrXpBar"></i></div><span id="xrGain" style="color:var(--l)"></span></div></div>
-    <div class="row end"><button class="btn ghost" id="xrMenu">MENU</button><button class="btn pink" id="xrFind" hidden>NEW MATCH</button><button class="btn" id="xrAgain" hidden>PLAY AGAIN</button></div>
+    <div class="row end"><button class="btn ghost" id="xrMenu">MENU</button><button class="btn ghost" id="xrRoom" hidden>BACK TO ROOM</button><button class="btn pink" id="xrFind" hidden>NEW MATCH</button><button class="btn" id="xrAgain" hidden>PLAY AGAIN</button></div>
     <div class="note" id="xrWait" hidden>The host picks what happens next.</div>
   </div>
 </section>
@@ -2289,7 +2289,7 @@ function onRoomPeers(ch){
   const pr = h.presence, now = performance.now();
   NET.last = pr; if (Array.isArray(pr.pk)) NET.pk = pr.pk.slice(0, 12).map(String); if (pr.cfg) NET.hcfg = pr.cfg;
   if (pr.ph === 'x' && pr.x){ xFromHost(pr.x, ch.peers); NET.phase = 'x'; return; }
-  if (pr.ph === 'room' || !pr.ph){ if (appMode === 'client' || appMode === 'xclient'){ appMode = 'room'; ED.enabled = false; musicStop(); show(NET.mm ? 'scrQueue' : 'scrRoom'); } renderRoom(); return; }
+  if (pr.ph === 'room' || !pr.ph){ if (appMode === 'xclient'){ XC.s = null; xDrawReset(); NET.named.presence({xo:null, xf:null, xr:0, xg:null, xc:null}).catch(() => {}); } if (appMode === 'client' || appMode === 'xclient'){ appMode = 'room'; ED.enabled = false; musicStop(); show(NET.mm ? 'scrQueue' : 'scrRoom'); } renderRoom(); return; }
   if (pr.mid !== NET.mid){
     const meP = NET.named.peers().find(p => p.sameTab);
     if (Array.isArray(pr.pk) && meP && !pr.pk.includes('p:' + meP.peer)){
@@ -2878,7 +2878,7 @@ function xShowRes(S){
   ED.enabled = false; musicStop(); showView('vXRes'); $('vXRes').scrollTop = 0;
   if (S.k === 'duo') duoResults(S); else chaResults(S);
   const local = appMode === 'xlocal', host = appMode === 'xhost' && !NET.mm;
-  $('xrAgain').hidden = !(local || host); $('xrFind').hidden = !NET.mm; $('xrWait').hidden = !(appMode === 'xclient' && !NET.mm);
+  $('xrAgain').hidden = !(local || host); $('xrRoom').hidden = !host; $('xrFind').hidden = !NET.mm; $('xrWait').hidden = !(appMode === 'xclient' && !NET.mm);
 }
 function xAward(gain, win){
   const before = levelOf(prof.xp); prof.xp += gain; prof.games = (prof.games | 0) + 1; if (win) prof.wins = (prof.wins | 0) + 1; saveProf();
@@ -2912,6 +2912,13 @@ function xQuit(){
   if (NET.named) leaveRoom(); toMenu();
 }
 $('xrMenu').onclick = () => { if (NET.named) leaveRoom(); toMenu(); };
+// host of a private room: everyone goes back to the room screen to pick the next mode
+$('xrRoom').onclick = () => {
+  if (appMode !== 'xhost' || !NET.named) return;
+  XG = null; XC.s = null; xDrawReset(); appMode = 'room';
+  NET.named.presence({ph:'room', x:null, xo:null, xf:null, xr:0, xg:null, xc:null}).catch(() => {});
+  updateOpenPresence(); show('scrRoom'); renderRoom();
+};
 $('xrAgain').onclick = () => { auInit(); if (appMode === 'xlocal' || !NET.named) xLocal(XC.kind || lastX); else if (appMode === 'xhost') hostStart(); };
 $('xrFind').onclick = () => { auInit(); const k = XC.kind === 'duo' ? 'd' : 'c'; if (NET.named) leaveRoom(); XG = null; showView(null); startQueue(k); };
 document.querySelectorAll('[data-xb]').forEach(b => b.onclick = () => xLocal(b.dataset.xb));
