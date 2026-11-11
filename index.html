@@ -324,7 +324,7 @@ body{margin:0}
     <div id="onlineOff" class="note" hidden>Can't reach the online game servers from this network right now. It keeps trying in the background. Some school and work networks block them; Quick Play and Practice still work.</div>
     <div id="onlineOn" class="opt">
       <div class="lbl">Start a room</div>
-      <div class="row"><button class="btn" data-host="8">START A ROOM</button></div>
+      <div class="row"><button class="btn" data-host="12">START A ROOM</button></div>
       <div class="lbl" style="margin-top:6px"><label for="codeIn">Join with a code</label></div>
       <div class="row"><input type="text" id="codeIn" maxlength="4" placeholder="ABCD" style="max-width:150px;text-transform:uppercase;letter-spacing:.2em" autocomplete="off"><button class="btn ghost" id="joinBtn">JOIN</button></div>
       <div class="lbl" style="margin-top:6px">Open rooms right now</div>
@@ -2007,13 +2007,13 @@ function setupNamed(nr, code, host, max, mm){
 const hostOf = peers => { let best = null; for (const p of peers) if (p.presence && p.presence.host === 1 && !p.sameTab && (!best || (p.presence.hg | 0) > (best.presence.hg | 0))) best = p; return best; };
 function findHost(){ return NET.named ? hostOf(NET.named.peers()) : null; }
 function roomHumans(){ return NET.named ? NET.named.peers().filter(p => p.presence && typeof p.presence.nm === 'string').sort((a, b) => (+a.presence.j || 0) - (+b.presence.j || 0)) : []; }
-function updateOpenPresence(){ if (!NET.room || !NET.host || !NET.named || NET.mm) return; NET.room.presence({open:{c:NET.code, n:clamp(roomHumans().length, 1, 8), m:NET.cfg.max, g:appMode === 'host' ? 1 : 0, v:GAME_V}}).catch(() => {}); }
+function updateOpenPresence(){ if (!NET.room || !NET.host || !NET.named || NET.mm) return; NET.room.presence({open:{c:NET.code, n:clamp(roomHumans().length, 1, NET.cfg.max), m:NET.cfg.max, g:appMode === 'host' ? 1 : 0, v:GAME_V}}).catch(() => {}); }
 function renderRoom(){
   if (!NET.named) return;
   $('roomCode').textContent = NET.code;
   const h = NET.host ? null : findHost(), cfg = NET.host ? NET.cfg : (h && h.presence.cfg) || NET.cfg;
   const hum = roomHumans();
-  $('roomMode').textContent = (cfg.max === 2 ? 'Duel room · 2 artists' : 'Party room · up to 8') + ` · ${fmt(cfg.time || 120)} to draw · ${hum.length > 2 ? 'players judge each other' : hum.length === 2 || hum.length + (NET.host ? NET.cfg.bots : (+cfg.bots | 0)) === 2 ? '1v1: bot judges pick the winner' : 'bot judges help score'}`; $('roomPlayers').innerHTML = '';
+  $('roomMode').textContent = (cfg.max === 2 ? 'Duel room · 2 artists' : `Party room · up to ${cfg.max}`) + ` · ${fmt(cfg.time || 120)} to draw · ${hum.length > 2 ? 'players judge each other' : hum.length === 2 || hum.length + (NET.host ? NET.cfg.bots : (+cfg.bots | 0)) === 2 ? '1v1: bot judges pick the winner' : 'bot judges help score'}`; $('roomPlayers').innerHTML = '';
   hum.forEach((p, i) => { const li = document.createElement('li'); li.innerHTML = '<i></i><span></span><small></small>'; li.querySelector('i').style.background = ['#ff77a8', '#41a6f6', '#ffcd75', '#a7f070', '#73eff7', '#ef7d57', '#c58bff', '#f4f4f4'][i % 8]; li.querySelector('span').textContent = cleanName(p.presence.nm) || 'Someone'; li.querySelector('small').textContent = [p.presence.host === 1 ? 'HOST' : '', p.sameTab ? 'YOU' : '', i >= cfg.max ? 'NEXT GAME' : ''].filter(Boolean).join(' · '); $('roomPlayers').appendChild(li); });
   const nb = NET.host ? NET.cfg.bots : (+cfg.bots | 0);
   if (nb > 0){ const li = document.createElement('li'); li.innerHTML = '<i style="background:#566c86"></i><span></span><small>BOTS</small>'; li.querySelector('span').textContent = `+ ${nb} bot artist${nb === 1 ? '' : 's'}`; $('roomPlayers').appendChild(li); }
@@ -2170,15 +2170,15 @@ function onRoomPeers(ch){
   NET.hostLostAt = 0; NET.hostPeer = h.peer; NET.hg = h.presence.hg | 0;
   NET.hadHost = true; clearTimeout(NET.joinTimer);
   const pr = h.presence, now = performance.now();
-  NET.last = pr; if (Array.isArray(pr.pk)) NET.pk = pr.pk.slice(0, 8).map(String); if (pr.cfg) NET.hcfg = pr.cfg;
+  NET.last = pr; if (Array.isArray(pr.pk)) NET.pk = pr.pk.slice(0, 12).map(String); if (pr.cfg) NET.hcfg = pr.cfg;
   if (pr.ph === 'room' || !pr.ph){ if (appMode === 'client'){ appMode = 'room'; ED.enabled = false; musicStop(); show(NET.mm ? 'scrQueue' : 'scrRoom'); } renderRoom(); return; }
   if (pr.mid !== NET.mid){
     const meP = NET.named.peers().find(p => p.sameTab);
     if (Array.isArray(pr.pk) && meP && !pr.pk.includes('p:' + meP.peer)){
       if (NET.mm){ mmBounce(); return; }
-      toast('That room is full (8 players).'); leaveRoom(); toMenu(); return;
+      toast(`That room is full (${(NET.hcfg && NET.hcfg.max) || 12} players).`); leaveRoom(); toMenu(); return;
     }
-    NET.mid = pr.mid; NET.theme = String(pr.th || '').slice(0, 30); NET.bots = Array.isArray(pr.bs) ? pr.bs.slice(0, 8) : []; NET.ready = false; NET.myVotes = {}; NET.phase = ''; NET.vi = -1; NET.resShown = '';
+    NET.mid = pr.mid; NET.theme = String(pr.th || '').slice(0, 30); NET.bots = Array.isArray(pr.bs) ? pr.bs.slice(0, 12) : []; NET.ready = false; NET.myVotes = {}; NET.phase = ''; NET.vi = -1; NET.resShown = '';
     NET.cache = {};
     NET.bots.forEach((b, i) => { NET.cache['b:' + i] = {grid:makeArt(NET.theme, +b[1] >>> 0, clamp(+b[2] | 0, 0, 2)), pal:'pico', nm:cleanName(b[0]) || 'Bot'}; });
     appMode = 'client'; NET.named.presence({dr:null, vt:null, rdy:0}).catch(() => {});
