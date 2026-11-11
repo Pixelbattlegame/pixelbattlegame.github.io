@@ -86,6 +86,7 @@ input[type=text]{width:100%;min-width:0;background:var(--e);border:4px solid var
 .tierlist span{font:400 10px var(--display);color:var(--s)}
 .tierlist li.me{border-color:var(--y)}
 .tierlist small{display:block;font:600 14px var(--body);color:var(--y);margin-top:3px}
+.num{font-family:var(--display);font-size:.78em;letter-spacing:.02em}
 .m-pur{--bg:#c58bff;--fg:var(--k)}
 .rk{font-family:var(--display)}
 .tips{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
@@ -1549,6 +1550,8 @@ function finishVoting(){
 
 // ---------- ranked ----------
 const TIERS = [[0, 'BRONZE', '#d98a5c'], [150, 'SILVER', '#c2c3c7'], [350, 'GOLD', '#ffcd75'], [600, 'PLATINUM', '#73eff7'], [900, 'DIAMOND', '#41a6f6'], [1250, 'MASTER', '#ff77a8'], [1700, 'LEGEND', '#ef7d57']];
+// the body font's 5 looks like an S, so numbers near ranks use the blocky display font
+const numify = t => esc(t).replace(/\d+/g, '<span class="num">$&</span>');
 function tierOf(rp){ let i = 0; while (i + 1 < TIERS.length && rp >= TIERS[i + 1][0]) i++; const lo = TIERS[i][0], hi = i + 1 < TIERS.length ? TIERS[i + 1][0] : null; return {i, name:TIERS[i][1], col:TIERS[i][2], lo, hi, pct:hi ? clamp((rp - lo) / (hi - lo) * 100, 0, 100) : 100}; }
 // Rank points for one match. place 1 = winner; opp = the other players' rank points.
 // Beating higher-ranked players earns more, and losing to them costs less. Bronze players lose half.
@@ -1589,7 +1592,7 @@ function showRankBox(rk){
   $('rRkGain').textContent = rk.d ? `${rk.d > 0 ? '+' : ''}${rk.d} RP` : 'NO CHANGE'; $('rRkGain').style.color = rk.d >= 0 ? 'var(--l)' : '#ef7d57';
   $('rRkFill').style.transition = 'none'; $('rRkFill').style.width = (t1.i === t0.i ? t0.pct : rk.d > 0 ? 0 : 100) + '%';
   requestAnimationFrame(() => requestAnimationFrame(() => { $('rRkFill').style.transition = ''; $('rRkFill').style.width = t1.pct + '%'; }));
-  $('rRkNote').textContent = (t1.i > t0.i ? `RANK UP! You are now ${t1.name}. ` : t1.i < t0.i ? `You dropped to ${t1.name}. ` : '') + `${rk.after} RP` + (t1.hi ? ` · ${t1.hi - rk.after} more to reach ${TIERS[t1.i + 1][1]}` : ' · top rank');
+  $('rRkNote').innerHTML = numify((t1.i > t0.i ? `RANK UP! You are now ${t1.name}. ` : t1.i < t0.i ? `You dropped to ${t1.name}. ` : '') + `${rk.after} RP` + (t1.hi ? ` · ${t1.hi - rk.after} more to reach ${TIERS[t1.i + 1][1]}` : ' · top rank'));
 }
 
 // ---------- results ----------
@@ -1721,7 +1724,7 @@ function renderRanks(){
   const me = tierOf(prof.rp);
   $('tierList').innerHTML = TIERS.map(([rp, nm, col], i) => { const next = TIERS[i + 1];
     return `<li class="${i === me.i ? 'me' : ''}"><i style="background:${col}"></i><div><b style="color:${col}">${nm}</b>${i === me.i ? '<small>You are here</small>' : ''}</div><span>${next ? `${rp}–${next[0] - 1} RP` : `${rp}+ RP`}</span></li>`; }).join('');
-  $('tierNote').innerHTML = `YOUR RP: <b style="color:var(--y)">${prof.rp}</b><br>` + (me.hi ? `NEXT RANK: ${TIERS[me.i + 1][1]} at ${me.hi} RP (${me.hi - prof.rp} to go)` : `You're at the top rank!`);
+  $('tierNote').innerHTML = `YOUR RP: <b class="num" style="color:var(--y)">${prof.rp}</b><br>` + numify(me.hi ? `NEXT RANK: ${TIERS[me.i + 1][1]} at ${me.hi} RP (${me.hi - prof.rp} to go)` : `You're at the top rank!`);
 }
 $('bOnline').onclick = () => { auInit(); renderOnlineAvail(); show('scrOnline'); };
 document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => { show('scrMenu'); refreshMenu(); });
@@ -1794,7 +1797,7 @@ function refreshMenu(){
   $('pals').querySelectorAll('[data-p]').forEach(b => b.onclick = () => { const p = b.dataset.p; if (!prof.unl.includes(p)){ toast('Level up to unlock more palettes. Every game earns XP.'); return; } prof.pal = p; saveProf(); refreshMenu(); SFX.click(880); });
   $('palCount').textContent = `· ${prof.unl.length}/${PAL_ORDER.length}`;
   const tr = tierOf(prof.rp); $('rkName').textContent = tr.name; $('rkName').style.color = tr.col; $('rkFill').style.width = tr.pct + '%'; $('rkFill').style.background = tr.col; $('rkTxt').textContent = `${prof.rp} RP`;
-  $('rankSub').textContent = `${tr.name} · ${prof.rp} RP. Place high to climb.`;
+  $('rankSub').innerHTML = numify(`${tr.name} · ${prof.rp} RP. Place high to climb.`);
 }
 $('nameIn').addEventListener('input', e => { prof.name = cleanName(e.target.value); saveProf(); if (NET.room) NET.room.presence({nm:myName()}).catch(() => {}); });
 
