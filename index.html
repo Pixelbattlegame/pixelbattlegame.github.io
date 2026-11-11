@@ -2363,6 +2363,21 @@ refreshMenu(); setMute(AU.muted);
 if (document.fonts) document.fonts.ready.then(() => refreshMenu());
 capsInit();
 if (prof.rpend) setTimeout(() => { rankedLeave(); refreshMenu(); }, 1200);   // the tab was closed in the middle of a ranked match
+// Pixelify Sans draws 2/8 and 5/S almost the same, so every number in that font is shown in the blocky display font
+const DIGFONT = /Pixelify/i, numQ = new Set();
+function numWrap(root){
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {acceptNode: n => {
+    if (!/\d/.test(n.nodeValue)) return NodeFilter.FILTER_REJECT;
+    const el = n.parentElement; if (!el || el.closest('script,style,textarea,input,svg,title,.num,[contenteditable]')) return NodeFilter.FILTER_REJECT;
+    return DIGFONT.test(getComputedStyle(el).fontFamily) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; }});
+  const list = []; while (w.nextNode()) list.push(w.currentNode);
+  for (const n of list){ const f = document.createDocumentFragment(); n.nodeValue.split(/(\d+)/).forEach((part, i) => { if (!part) return; if (i % 2){ const sp = document.createElement('span'); sp.className = 'num'; sp.textContent = part; f.appendChild(sp); } else f.appendChild(document.createTextNode(part)); }); n.parentNode.replaceChild(f, n); }
+}
+let numRaf = 0;
+new MutationObserver(ms => { for (const m of ms){ if (m.type === 'characterData'){ if (m.target.parentElement) numQ.add(m.target.parentElement); } else for (const a of m.addedNodes) numQ.add(a.nodeType === 3 ? a.parentElement : a); }
+  if (!numRaf) numRaf = requestAnimationFrame(() => { numRaf = 0; const q = [...numQ]; numQ.clear(); for (const el of q) if (el && el.isConnected && !(el.closest && el.closest('.num'))) numWrap(el); }); })
+  .observe(document.body, {childList:true, subtree:true, characterData:true});
+numWrap(document.body);
 window.__pb = {get GS(){ return GS; }, get NET(){ return NET; }, prof, rankDelta, tierOf, get RES(){ return RES; }, makeArt, judge, judgeRaw, JP, recognize, artFeatures, botVerdict, encGrid, decGrid, get mode(){ return appMode; }, ED, BOT_THEMES};
 window.__pbReady = 1; { const w = document.getElementById('jsWarn'); if (w) w.style.display = 'none'; }
 })();
