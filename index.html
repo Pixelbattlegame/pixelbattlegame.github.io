@@ -1174,12 +1174,26 @@ function makeArt(theme, seed, skill, opt){
 const BOT_THEMES = ["PIZZA", "CAT", "ROCKET", "CASTLE", "ICE CREAM", "ROBOT", "SNOWMAN", "BURGER", "GHOST", "MUSHROOM", "HOUSE", "SUNSET", "FISH", "CAR", "FLOWER", "PLANET", "VOLCANO", "CACTUS", "DONUT", "FROG", "UFO", "PUMPKIN", "PIRATE SHIP", "PENGUIN", "BIRTHDAY CAKE", "RAINBOW", "TREE", "MONSTER", "LOVE", "DRAGON", "NINJA", "SUPERHERO", "DINOSAUR", "ZOMBIE", "WIZARD", "SHARK", "DOG", "GAMING SETUP", "SNEAKERS", "TACO", "SUSHI", "UNICORN", "HAUNTED HOUSE", "TROPICAL ISLAND", "VIKING", "TRAIN", "SKATEBOARD", "MAGIC POTION", "TREASURE CHEST", "OCTOPUS", "BEE", "MERMAID", "ALIEN INVASION", "BEACH DAY", "APPLE", "WATERMELON", "CUPCAKE", "BANANA", "BUTTERFLY", "SPIDER", "SNAKE", "TURTLE", "OWL", "BUNNY", "PANDA", "WHALE", "DUCK", "FOX", "LIGHTHOUSE", "HOT AIR BALLOON", "AIRPLANE", "SUBMARINE", "CROWN", "SWORD", "GUITAR", "CAMPFIRE", "ASTRONAUT", "KNIGHT", "VAMPIRE", "SOCCER BALL", "TORNADO"];
 const EXTRA_THEMES = [];
 // themes come out in a shuffled order: you get through most of the list before any theme repeats
+// Every device remembers the themes it has played (whoever hosted), and shares its recent ones with the room,
+// so the host can pick a theme that is new to everyone, or the one fewest players have seen lately.
+const RT_SHARE = 45;
+function myRecent(){ const r = store.get('recentThemes', []); return Array.isArray(r) ? r : []; }
+const myRt = () => myRecent().slice(-RT_SHARE).map(t => BOT_THEMES.indexOf(t)).filter(i => i >= 0);
+function noteTheme(t){
+  if (!t) return;
+  const r = myRecent(); if (r[r.length - 1] === t) return;
+  store.set('recentThemes', r.filter(x => x !== t).concat(t).slice(-100));
+  if (NET.named) NET.named.presence({rt:myRt()}).catch(() => {});
+}
 function nextTheme(pool){
-  let recent = store.get('recentThemes', []); if (!Array.isArray(recent)) recent = [];
-  const keep = Math.floor(pool.length * .7), avoid = new Set(recent.slice(-keep));
-  const fresh = pool.filter(t => !avoid.has(t)), from = fresh.length ? fresh : pool;
+  const keep = Math.floor(pool.length * .7), lists = [myRecent().slice(-keep)];
+  if (NET.named) for (const p of NET.named.peers()) if (!p.sameTab && p.presence && Array.isArray(p.presence.rt)) lists.push(p.presence.rt.slice(-RT_SHARE).map(i => BOT_THEMES[i | 0]).filter(Boolean));
+  // cost of a theme: 1 for each player who had it recently, plus a little more the more recently they had it
+  const cost = t => { let c = 0; for (const l of lists){ const i = l.lastIndexOf(t); if (i >= 0) c += 1 + (i + 1) / l.length; } return c; };
+  const costs = pool.map(cost), best = Math.min(...costs);
+  const from = pool.filter((t, i) => costs[i] <= best + (best > 0 ? .15 : 0));
   const t = from[Math.floor(Math.random() * from.length)];
-  recent = recent.filter(x => x !== t).concat(t).slice(-100); store.set('recentThemes', recent);
+  noteTheme(t);
   return t;
 }
 const BOT_NAMES = ['Pixel Pete', 'Doodlebot', 'Sir Sketch', 'Crayon', 'Vincent Bot', 'Picassoid', 'Mona Byte', 'Brushy', 'Inky', 'Glitch', 'Daisy', 'Scribbles', 'Bitsy', 'Captain Color', 'Rembot', 'Frida.exe'];
@@ -2091,7 +2105,7 @@ async function joinRoom(code){ code = String(code || '').toUpperCase().replace(/
 function setupNamed(nr, code, host, max, mm){
   Object.assign(NET, {named:nr, code, host, mid:'', hadHost:false, vWarn:0, rps:{}, pk:null, last:null, hcfg:null, hg:0, hostLostAt:0, hostPeer:'', noPen:false, ranked:!!mm && !!MM.ranked, cache:{}, phase:'', vi:-1, resShown:'', myVotes:{}, mm:!!mm});
   NET.cfg = {max, bots:0, time:120, mode:'classic'}; XC.mid = ''; XC.s = null;
-  const base = {nm:myName(), j:Date.now(), v:GAME_V, rp:prof.rp | 0};
+  const base = {nm:myName(), j:Date.now(), v:GAME_V, rp:prof.rp | 0, rt:myRt()};
   nr.presence(host ? Object.assign(base, {host:1, ph:'room', cfg:NET.cfg, rk:NET.ranked ? 1 : 0}) : base).catch(() => {});
   NET.unsub = nr.onPeers(onRoomPeers, () => { NET.noPen = true; toast('Lost the connection to the room.'); leaveRoom(); toMenu(); });
   if (host) updateOpenPresence();
@@ -2296,7 +2310,7 @@ function onRoomPeers(ch){
       if (NET.mm){ mmBounce(); return; }
       toast(`That room is full (${(NET.hcfg && NET.hcfg.max) || 12} players).`); leaveRoom(); toMenu(); return;
     }
-    NET.mid = pr.mid; NET.theme = String(pr.th || '').slice(0, 30); NET.bots = Array.isArray(pr.bs) ? pr.bs.slice(0, 12) : []; NET.ready = false; NET.myVotes = {}; NET.phase = ''; NET.vi = -1; NET.resShown = '';
+    NET.mid = pr.mid; NET.theme = String(pr.th || '').slice(0, 30); noteTheme(NET.theme); NET.bots = Array.isArray(pr.bs) ? pr.bs.slice(0, 12) : []; NET.ready = false; NET.myVotes = {}; NET.phase = ''; NET.vi = -1; NET.resShown = '';
     NET.cache = {};
     NET.bots.forEach((b, i) => { NET.cache['b:' + i] = {grid:makeArt(NET.theme, +b[1] >>> 0, clamp(+b[2] | 0, 0, 2)), pal:'pico', nm:cleanName(b[0]) || 'Bot'}; });
     appMode = 'client'; NET.named.presence({dr:null, vt:null, rdy:0}).catch(() => {});
@@ -2577,6 +2591,7 @@ function duoCanvas(S, t){
 function duoTeamOf(S, key){ return S.tm.findIndex(t => t.includes(key)); }
 function duoEnterDraw(S){
   showView('vDraw'); $('vDraw').className = 'view duo';
+  noteTheme(S.th);
   $('dTheme').textContent = S.th; edStart(prof.pal, 64); ED.own = new Uint8Array(4096); ED.shared = true;
   XC.ds = {base:ED.grid.slice(), log:[], n:0, snapN:-1, lastSnap:0, lastPub:0, lastKey:''}; XC.pa = {a:0}; XC.rdy = false;
   const myT = duoTeamOf(S, XC.me), team = S.tm[myT] || [];
@@ -2854,7 +2869,7 @@ function xRender(S){
   const end = now + (+S.rem || 0) * 1000; if (Math.abs(end - XC.endAt) > 1200 || S.ph !== XC.ph) XC.endAt = end;
   const changed = S.ph !== XC.ph || (S.k === 'cha' && S.ti !== XC.ti);
   if (S.k === 'duo'){
-    if (S.ph === 'theme' && changed) playReel(S.th, BOT_THEMES);
+    if (S.ph === 'theme' && changed){ noteTheme(S.th); playReel(S.th, BOT_THEMES); }
     else if (S.ph === 'draw'){ if (changed) duoEnterDraw(S); duoStatus(S); }
     else if (S.ph === 'collect' && changed){ ED.enabled = false; musicStop(); SFX.end(); duoFinal(); showCollecting(); $('reelSub').textContent = 'Putting the team drawings together…'; }
     else if (S.ph === 'res' && Array.isArray(S.res) && XC.resShown !== S.mid){ XC.resShown = S.mid; xShowRes(S); }
@@ -2867,6 +2882,7 @@ function xRender(S){
     }
     else if (S.ph === 'turn'){ if (changed) chaEnterTurn(S); chaTurnUi(S); }
     else if (S.ph === 'reveal' && changed){
+      noteTheme(S.rw);
       ED.enabled = false; musicStop(); showView('vTheme'); const r = $('reel'); r.textContent = S.rw || '???';
       const got = (S.ok || []).map(k => xName(S, k)); $('reelSub').textContent = got.length ? `${got.join(', ')} got it!` : 'Nobody got it this time.'; SFX.reveal(3);
     }
@@ -2978,7 +2994,7 @@ new MutationObserver(ms => { for (const m of ms){ if (m.type === 'characterData'
   if (!numRaf) numRaf = requestAnimationFrame(() => { numRaf = 0; const q = [...numQ]; numQ.clear(); for (const el of q) if (el && el.isConnected && !(el.closest && el.closest('.num'))) numWrap(el); }); })
   .observe(document.body, {childList:true, subtree:true, characterData:true});
 numWrap(document.body);
-window.__pbx = {JP, features, effortOf, themeMatch, get XG(){ return XG; }, XC, get appMode(){ return appMode; }, get MM(){ return MM; }, encAny, decAny};
+window.__pbx = {nextTheme, noteTheme, myRecent, JP, features, effortOf, themeMatch, get XG(){ return XG; }, XC, get appMode(){ return appMode; }, get MM(){ return MM; }, encAny, decAny};
 window.__pb = {get GS(){ return GS; }, get NET(){ return NET; }, prof, rankDelta, tierOf, get RES(){ return RES; }, makeArt, judge, judgeRaw, JP, recognize, artFeatures, botVerdict, encGrid, decGrid, get mode(){ return appMode; }, ED, BOT_THEMES};
 window.__pbReady = 1; { const w = document.getElementById('jsWarn'); if (w) w.style.display = 'none'; }
 })();
