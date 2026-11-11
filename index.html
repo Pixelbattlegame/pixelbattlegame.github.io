@@ -87,6 +87,7 @@ input[type=text]{width:100%;min-width:0;background:var(--e);border:4px solid var
 .tierlist li.me{border-color:var(--y)}
 .tierlist small{display:block;font:600 14px var(--body);color:var(--y);margin-top:3px}
 .num,.mode span.num{font:400 .6em/1 var(--display);letter-spacing:0;vertical-align:-.04em;opacity:1}
+.m-teal{--bg:#38b7a8;--fg:var(--k)}
 .m-pur{--bg:#c58bff;--fg:var(--k)}
 .rk{font-family:var(--display)}
 .tips{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
@@ -271,6 +272,7 @@ body{margin:0}
       <button class="mode m-pur" id="bRanked"><b>RANKED</b><span id="rankSub">Real players. Place high to climb the ranks.</span></button>
       <button class="mode m-blue" id="bPrac"><b>PRACTICE</b><span>Solo. The bot judge scores you out of 10.</span></button>
       <button class="mode m-grn" id="bOnline"><b>PRIVATE ROOM</b><span id="onlineSub">Play friends with a code</span></button>
+      <button class="mode big m-teal" id="bModes"><b>OTHER GAMEMODES</b><span>More ways to play. New modes are on the way.</span></button>
     </div>
     <div class="tips">
       <div><b>1 THEME</b>A random theme spins up.</div>
@@ -282,6 +284,14 @@ body{margin:0}
   </div>
 </section>
 
+<section class="screen dim" id="scrModes" hidden>
+  <div class="panel">
+    <button class="back" data-back>← BACK</button>
+    <h2>OTHER GAMEMODES</h2>
+    <p class="sub">New ways to play are coming here soon. Check back after the next update!</p>
+    <div class="note">COMING SOON</div>
+  </div>
+</section>
 <section class="screen dim" id="scrRanks" hidden>
   <div class="panel">
     <button class="back" data-back>← BACK</button>
@@ -1398,7 +1408,7 @@ function edStart(palId){
 
 // ---------- views ----------
 const VIEWS = ['vTheme', 'vHand', 'vDraw', 'vVote', 'vRes', 'vJudge'];
-const SCREENS = ['scrMenu', 'scrRanks', 'scrPrac', 'scrQueue', 'scrOnline', 'scrRoom'];
+const SCREENS = ['scrMenu', 'scrModes', 'scrRanks', 'scrPrac', 'scrQueue', 'scrOnline', 'scrRoom'];
 function showView(id){ for (const v of VIEWS) $(v).hidden = v !== id; if (id) for (const s of SCREENS) $(s).hidden = true; }
 function show(id){ for (const s of SCREENS) $(s).hidden = s !== id; if (id) for (const v of VIEWS) $(v).hidden = true; }
 function toast(msg){ const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, 2600); }
@@ -1715,6 +1725,7 @@ $('dDone').onclick = () => {
 const meHuman = () => ({nm:myName(), kind:'local', slot:0});
 $('bQuick').onclick = () => { auInit(); startLocal({humans:[meHuman()], bots:7, time:120}); };
 $('bPrac').onclick = () => { auInit(); renderPracSetup(); show('scrPrac'); };
+$('bModes').onclick = () => { auInit(); show('scrModes'); };
 $('bRanks').onclick = () => { auInit(); renderRanks(); show('scrRanks'); };
 // another tab or a finished match may have changed the saved rank points: always show the saved number
 function syncRp(){ const saved = store.get('prof', {}); for (const k of ['rp', 'rg', 'rw', 'rpk', 'rlast', 'rpend']) if (k in saved) prof[k] = saved[k]; prof.rp = Math.max(0, Math.round(+prof.rp || 0)); }
