@@ -78,7 +78,15 @@ input[type=text]{width:100%;min-width:0;background:var(--e);border:4px solid var
 .mode span{font-weight:600;font-size:16px;line-height:1.15;opacity:.92}
 .mode.big{grid-column:1/-1}
 .mode.big b{font-size:19px}
-.m-red{--bg:#e04a5f;--fg:#fff}.m-blue{--bg:var(--c);--fg:var(--k)}.m-yel{--bg:var(--y);--fg:var(--k)}.m-grn{--bg:var(--l);--fg:var(--k)}.m-pur{--bg:#c58bff;--fg:var(--k)}
+.m-red{--bg:#e04a5f;--fg:#fff}.m-blue{--bg:var(--c);--fg:var(--k)}.m-yel{--bg:var(--y);--fg:var(--k)}.m-grn{--bg:var(--l);--fg:var(--k)}.rkinfo{height:24px;min-width:0;font-size:8px;padding:0 8px;color:var(--y)}
+.tierlist{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.tierlist li{display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--e);padding:8px 10px;border:3px solid transparent}
+.tierlist li i{width:14px;height:14px}
+.tierlist b{font:400 11px var(--display)}
+.tierlist span{font:400 10px var(--display);color:var(--s)}
+.tierlist li.me{border-color:var(--y)}
+.tierlist small{display:block;font:600 14px var(--body);color:var(--y);margin-top:3px}
+.m-pur{--bg:#c58bff;--fg:var(--k)}
 .rk{font-family:var(--display)}
 .tips{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .tips div{background:var(--e);padding:8px;font-size:15px;color:var(--s);line-height:1.2}
@@ -253,7 +261,7 @@ body{margin:0}
         </div>
       </div>
       <div class="lvl">LV <span id="lvl">1</span><div class="xpbar"><i id="xpFill"></i></div><span id="xpTxt" style="color:var(--s);font-size:8px"></span></div>
-      <div class="lvl"><span id="rkName">BRONZE</span><div class="xpbar"><i id="rkFill"></i></div><span id="rkTxt" style="color:var(--s);font-size:8px"></span></div>
+      <div class="lvl"><span id="rkName">BRONZE</span><div class="xpbar"><i id="rkFill"></i></div><span id="rkTxt" style="color:var(--s);font-size:8px"></span><button class="ib rkinfo" id="bRanks" aria-label="See all ranks">RANKS ⓘ</button></div>
       <div hidden><div class="lbl" style="margin-bottom:6px">Palette <span id="palCount"></span></div><div class="pals" id="pals" role="group" aria-label="Pick your palette"></div></div>
     </div>
     <div class="modes">
@@ -273,6 +281,15 @@ body{margin:0}
   </div>
 </section>
 
+<section class="screen dim" id="scrRanks" hidden>
+  <div class="panel">
+    <button class="back" data-back>← BACK</button>
+    <h2>RANKS</h2>
+    <p class="sub">Play Ranked to earn RP. Place high to gain RP, place low to lose some. Each rank takes more RP to reach than the one before.</p>
+    <ol class="tierlist" id="tierList"></ol>
+    <div class="note" id="tierNote"></div>
+  </div>
+</section>
 <section class="screen dim" id="scrPrac" hidden>
   <div class="panel">
     <button class="back" data-back>← BACK</button>
@@ -1380,7 +1397,7 @@ function edStart(palId){
 
 // ---------- views ----------
 const VIEWS = ['vTheme', 'vHand', 'vDraw', 'vVote', 'vRes', 'vJudge'];
-const SCREENS = ['scrMenu', 'scrPrac', 'scrQueue', 'scrOnline', 'scrRoom'];
+const SCREENS = ['scrMenu', 'scrRanks', 'scrPrac', 'scrQueue', 'scrOnline', 'scrRoom'];
 function showView(id){ for (const v of VIEWS) $(v).hidden = v !== id; if (id) for (const s of SCREENS) $(s).hidden = true; }
 function show(id){ for (const s of SCREENS) $(s).hidden = s !== id; if (id) for (const v of VIEWS) $(v).hidden = true; }
 function toast(msg){ const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, 2600); }
@@ -1531,7 +1548,7 @@ function finishVoting(){
 }
 
 // ---------- ranked ----------
-const TIERS = [[0, 'BRONZE', '#d98a5c'], [100, 'SILVER', '#c2c3c7'], [200, 'GOLD', '#ffcd75'], [300, 'PLATINUM', '#73eff7'], [400, 'DIAMOND', '#41a6f6'], [500, 'MASTER', '#ff77a8'], [650, 'LEGEND', '#ef7d57']];
+const TIERS = [[0, 'BRONZE', '#d98a5c'], [150, 'SILVER', '#c2c3c7'], [350, 'GOLD', '#ffcd75'], [600, 'PLATINUM', '#73eff7'], [900, 'DIAMOND', '#41a6f6'], [1250, 'MASTER', '#ff77a8'], [1700, 'LEGEND', '#ef7d57']];
 function tierOf(rp){ let i = 0; while (i + 1 < TIERS.length && rp >= TIERS[i + 1][0]) i++; const lo = TIERS[i][0], hi = i + 1 < TIERS.length ? TIERS[i + 1][0] : null; return {i, name:TIERS[i][1], col:TIERS[i][2], lo, hi, pct:hi ? clamp((rp - lo) / (hi - lo) * 100, 0, 100) : 100}; }
 // Rank points for one match. place 1 = winner; opp = the other players' rank points.
 // Beating higher-ranked players earns more, and losing to them costs less. Bronze players lose half.
@@ -1695,6 +1712,13 @@ $('dDone').onclick = () => {
 const meHuman = () => ({nm:myName(), kind:'local', slot:0});
 $('bQuick').onclick = () => { auInit(); startLocal({humans:[meHuman()], bots:5, time:120}); };
 $('bPrac').onclick = () => { auInit(); renderPracSetup(); show('scrPrac'); };
+$('bRanks').onclick = () => { auInit(); renderRanks(); show('scrRanks'); };
+function renderRanks(){
+  const me = tierOf(prof.rp | 0);
+  $('tierList').innerHTML = TIERS.map(([rp, nm, col], i) => { const next = TIERS[i + 1];
+    return `<li class="${i === me.i ? 'me' : ''}"><i style="background:${col}"></i><div><b style="color:${col}">${nm}</b>${i === me.i ? '<small>You are here</small>' : ''}</div><span>${next ? `${rp}–${next[0] - 1} RP` : `${rp}+ RP`}</span></li>`; }).join('');
+  $('tierNote').textContent = me.hi ? `You have ${prof.rp | 0} RP. ${me.hi - (prof.rp | 0)} more to reach ${TIERS[me.i + 1][1]}.` : `You have ${prof.rp | 0} RP. You're at the top rank!`;
+}
 $('bOnline').onclick = () => { auInit(); renderOnlineAvail(); show('scrOnline'); };
 document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => { show('scrMenu'); refreshMenu(); });
 const TIMES = [[60, '1:00'], [90, '1:30'], [120, '2:00'], [180, '3:00']];
