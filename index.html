@@ -87,6 +87,36 @@ input[type=text]{width:100%;min-width:0;background:var(--e);border:4px solid var
 .tierlist li.me{border-color:var(--y)}
 .tierlist small{display:block;font:600 14px var(--body);color:var(--y);margin-top:3px}
 .num,.mode span.num{font:400 .6em/1 var(--display);letter-spacing:0;vertical-align:-.04em;opacity:1}
+.xcard{background:var(--e);padding:12px;display:grid;gap:8px}
+.xcard b{font:400 13px var(--display);color:var(--a)}
+.xcard span{color:var(--s);font-size:16px}
+#vDraw:not(.cha) .chabox{display:none}
+#vDraw.cha{grid-template-rows:auto minmax(0,1fr) auto auto}
+#vDraw.cha .board{width:min(100%, calc(100dvh - 330px), 560px)}
+#vDraw.watch .tools,#vDraw.watch .palette{visibility:hidden}
+#vDraw.watch .board canvas{cursor:default}
+#vDraw.cha:not(.watch) .chaform{display:none}
+#vDraw.cha:not(.watch) .feed{height:64px}
+.chabox{display:grid;gap:6px;width:100%;max-width:560px;justify-self:center}
+.feed{list-style:none;margin:0;padding:6px 8px;background:rgba(26,28,44,.85);border:3px solid var(--e);height:96px;overflow-y:auto;display:grid;align-content:start;gap:2px;font-size:15px}
+.feed b{color:var(--a);font-weight:600}
+.feed .f-ok{color:var(--l)} .feed .f-ok b{color:var(--l)}
+.feed .f-close{color:var(--y)} .feed .f-sys{color:var(--s)}
+.chaform{display:flex;gap:8px}
+.chaform input{flex:1;min-width:0;background:var(--e);border:4px solid var(--d);color:var(--w);font:600 18px var(--body);padding:6px 10px;border-radius:0}
+.chaform .btn{padding:10px 12px}
+.xbanner{font:400 18px var(--display);color:var(--y);text-align:center;padding:10px;background:var(--e)}
+.duores{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.duocard{display:grid;gap:6px;justify-items:center;text-align:center;background:var(--e);padding:10px;border:4px solid transparent}
+.duocard.win{border-color:var(--G)}
+.duocard .cv canvas{width:100%;max-width:300px;aspect-ratio:1;background:var(--w);display:block}
+.duocard .cv{width:100%;display:grid;justify-items:center}
+.duocard .nm{font-weight:600;font-size:16px}
+.duocard .sc{font:400 13px var(--display);color:var(--y)}
+.duocard small{color:var(--s)}
+.xranks li{grid-template-columns:42px minmax(0,1fr) auto}
+.xranks li.me{outline:3px solid var(--y)}
+@media (max-width:540px){ .duores{gap:6px} .duocard{padding:6px} .xbanner{font-size:14px} }
 .m-teal{--bg:#38b7a8;--fg:var(--k)}
 .m-pur{--bg:#c58bff;--fg:var(--k)}
 .rk{font-family:var(--display)}
@@ -169,6 +199,11 @@ h2{font-family:var(--display);font-weight:400;font-size:20px;margin:0;line-heigh
   .dstatus .who{font-size:13px;padding:2px 6px;white-space:nowrap;flex:none}
   .dmain{grid-template-columns:minmax(0,1fr);gap:10px}
   .board{width:min(100%, 560px, calc(100dvh - 384px));order:1;min-width:240px}
+  #vDraw.cha{grid-template-rows:auto max-content auto auto}
+  #vDraw.cha .board{width:min(100%, 560px, calc(100dvh - 400px))}
+  #vDraw.watch .board{width:min(100%, 560px, calc(100dvh - 330px))}
+  #vDraw.watch .tools,#vDraw.watch .palette{display:none}
+  .feed{height:78px}
   .palette{order:2;grid-template-columns:repeat(8,minmax(0,40px));gap:4px;width:100%;justify-content:center}
   .swatch{width:100%;height:auto;aspect-ratio:1}
   .palsel{grid-column:1/-1}
@@ -272,7 +307,7 @@ body{margin:0}
       <button class="mode m-pur" id="bRanked"><b>RANKED</b><span id="rankSub">Real players. Place high to climb the ranks.</span></button>
       <button class="mode m-blue" id="bPrac"><b>PRACTICE</b><span>Solo. The bot judge scores you out of 10.</span></button>
       <button class="mode m-grn" id="bOnline"><b>PRIVATE ROOM</b><span id="onlineSub">Play friends with a code</span></button>
-      <button class="mode big m-teal" id="bModes"><b>OTHER GAMEMODES</b><span>More ways to play. New modes are on the way.</span></button>
+      <button class="mode big m-teal" id="bModes"><b>OTHER GAMEMODES</b><span>2V2 team drawing and Charades.</span></button>
     </div>
     <div class="tips">
       <div><b>1 THEME</b>A random theme spins up.</div>
@@ -288,8 +323,17 @@ body{margin:0}
   <div class="panel">
     <button class="back" data-back>← BACK</button>
     <h2>OTHER GAMEMODES</h2>
-    <p class="sub">New ways to play are coming here soon. Check back after the next update!</p>
-    <div class="note">COMING SOON</div>
+    <div class="xcard">
+      <b>2V2 TEAM DRAW</b>
+      <span>Team up on one big 64×64 canvas. You and your partner draw on it at the same time. The bot judges pick the best team drawing.</span>
+      <div class="row"><button class="btn" data-xq="duo">FIND 2V2 MATCH</button><button class="btn ghost" data-xb="duo">PLAY WITH BOTS</button></div>
+    </div>
+    <div class="xcard">
+      <b>CHARADES</b>
+      <span>Take turns drawing a secret word while everyone else types guesses. Guess it in under 15 seconds for 2 points, later for 1. The drawer gets 1 point for every player who guesses it in under 15 seconds.</span>
+      <div class="row"><button class="btn" data-xq="cha">FIND CHARADES MATCH</button><button class="btn ghost" data-xb="cha">PLAY WITH BOTS</button></div>
+    </div>
+    <div class="note">Playing with friends? Start a Private Room and pick the mode there.</div>
   </div>
 </section>
 <section class="screen dim" id="scrRanks" hidden>
@@ -353,9 +397,11 @@ body{margin:0}
     <div class="lbl">Artists</div>
     <ul class="plist" id="roomPlayers"></ul>
     <div id="hostCtl" class="opt">
-      <div class="lbl">Drawing time</div>
+      <div class="lbl">Mode</div>
+      <div class="seg" id="roomModeSel"></div>
+      <div class="lbl" id="roomTimeLbl">Drawing time</div>
       <div class="seg" id="roomTime"></div>
-      <div class="row between"><div class="stepper"><span>BOTS</span><button id="rbMinus" aria-label="Fewer bots">–</button><output id="rbN">0</output><button id="rbPlus" aria-label="More bots">+</button></div><button class="btn" id="roomGo">START</button></div>
+      <div class="row between"><div class="stepper" id="rbStep"><span>BOTS</span><button id="rbMinus" aria-label="Fewer bots">–</button><output id="rbN">0</output><button id="rbPlus" aria-label="More bots">+</button></div><button class="btn" id="roomGo">START</button></div>
     </div>
     <div id="guestWait" class="note" hidden>Waiting for the host to start…</div>
   </div>
@@ -388,6 +434,10 @@ body{margin:0}
     <div class="tools" id="tools" role="toolbar" aria-label="Drawing tools"></div>
     <div class="board" id="board"><canvas id="ed" class="px" width="512" height="512" aria-label="Drawing canvas"></canvas></div>
     <div class="palette" id="palette" role="group" aria-label="Colors"></div>
+  </div>
+  <div class="chabox" id="chaBox">
+    <ol class="feed" id="chaFeed"></ol>
+    <form class="chaform" id="chaForm" autocomplete="off"><input type="text" id="chaIn" maxlength="24" placeholder="Type your guess" autocomplete="off" spellcheck="false" enterkeyhint="send"><button class="btn" id="chaGo">GUESS</button></form>
   </div>
   <footer class="dstatus" id="dStatus"></footer>
 </section>
@@ -442,6 +492,15 @@ body{margin:0}
       <button class="btn" id="rAgain">PLAY AGAIN</button>
     </div>
     <div class="note" id="rWait" hidden>The host picks what happens next.</div>
+  </div>
+</section>
+<section class="view" id="vXRes" hidden>
+  <div class="resbox">
+    <header class="topbar"><div><div class="lbl" id="xrLbl">Results</div><h2 id="xrTitle">RESULTS</h2></div></header>
+    <div id="xrBody"></div>
+    <div class="opt"><div class="lvl">LV <span id="xrLvl">1</span><div class="xpbar"><i id="xrXpBar"></i></div><span id="xrGain" style="color:var(--l)"></span></div></div>
+    <div class="row end"><button class="btn ghost" id="xrMenu">MENU</button><button class="btn pink" id="xrFind" hidden>NEW MATCH</button><button class="btn" id="xrAgain" hidden>PLAY AGAIN</button></div>
+    <div class="note" id="xrWait" hidden>The host picks what happens next.</div>
   </div>
 </section>
 <div id="toast" hidden></div>
@@ -533,10 +592,11 @@ function setMute(m){ AU.muted = m; store.set('muted', m); if (AU.m) AU.m.gain.va
 // ---------- art encoding & rendering ----------
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 function encGrid(g){ let bytes = '', acc = 0, bits = 0; for (let i = 0; i < CELLS; i++){ acc = (acc << 5) | (g[i] & 31); bits += 5; while (bits >= 8){ bits -= 8; bytes += String.fromCharCode((acc >> bits) & 255); } acc &= (1 << bits) - 1; } return btoa(bytes); }
-const GAME_V = 4;   // bump when online data changes in a way older copies can't read; versions never share rooms or matchmaking
+const GAME_V = 5;   // bump when online data changes in a way older copies can't read; versions never share rooms or matchmaking
 const roomName = code => 'pixelbattle' + GAME_V + '-' + String(code).toLowerCase();
 function decGrid(s){ const g = new Uint8Array(CELLS); try { const b = atob(String(s || '')); if (b.length <= CELLS / 2){ for (let i = 0; i < CELLS / 2 && i < b.length; i++){ const v = b.charCodeAt(i); g[i * 2] = v >> 4; g[i * 2 + 1] = v & 15; } } else { let acc = 0, bits = 0, k = 0; for (let i = 0; i < b.length && k < CELLS; i++){ acc = (acc << 8) | b.charCodeAt(i); bits += 8; while (bits >= 5 && k < CELLS){ bits -= 5; g[k++] = (acc >> bits) & 31; } acc &= (1 << bits) - 1; } } } catch(e){} return g; }
 function drawGrid(canvas, grid, palId, opts = {}){
+  const N = Math.round(Math.sqrt(grid.length)) || 32;
   const c = canvas.getContext('2d'), w = canvas.width, cs = w / N, pal = (PALS[palId] || PALS.pico).c;
   c.imageSmoothingEnabled = false;
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++){ c.fillStyle = pal[grid[y * N + x]]; c.fillRect(Math.floor(x * cs), Math.floor(y * cs), Math.ceil(cs), Math.ceil(cs)); }
@@ -1302,7 +1362,7 @@ function bgFrame(dt, t){
 }
 
 // ---------- editor ----------
-const ED = {grid:new Uint8Array(CELLS), pal:'pico', color:8, tool:'pen', size:1, mirror:false, gridOn:true, undo:[], redo:[], down:false, last:null, enabled:false, hover:null, dirty:false};
+const ED = {n:32, own:null, shared:false, grid:new Uint8Array(CELLS), pal:'pico', color:8, tool:'pen', size:1, mirror:false, gridOn:true, undo:[], redo:[], down:false, last:null, enabled:false, hover:null, dirty:false};
 const edCv = $('ed');
 const ICON = {
   pen:'<svg viewBox="0 0 8 8"><path fill="currentColor" d="M6 0h1v1h1v1h-1v1h-1v1h-1v1h-1v1h-1v1H1v-2h1V4h1V3h1V2h1V1h1z"/></svg>',
@@ -1326,13 +1386,18 @@ let clearArm = 0;
 function toolAction(id){
   if (!ED.enabled) return;
   auInit();
+  if ((id === 'undo' || id === 'redo') && ED.shared){
+    const from = id === 'undo' ? ED.undo : ED.redo, to = id === 'undo' ? ED.redo : ED.undo; if (!from.length) return;
+    const prev = from.pop(); to.push(ED.grid.slice()); for (let i = 0; i < ED.grid.length; i++) if (ED.grid[i] !== prev[i] && ED.own[i] === 1) ED.grid[i] = prev[i];
+    edChanged(); SFX.undo(); return;
+  }
   if (id === 'undo'){ if (ED.undo.length){ ED.redo.push(ED.grid.slice()); ED.grid = ED.undo.pop(); edChanged(); SFX.undo(); } return; }
   if (id === 'redo'){ if (ED.redo.length){ ED.undo.push(ED.grid.slice()); ED.grid = ED.redo.pop(); edChanged(); SFX.undo(); } return; }
   if (id === 'mirror'){ ED.mirror = !ED.mirror; syncTools(); edRender(); SFX.click(ED.mirror ? 880 : 440); return; }
   if (id === 'clear'){
     const now = performance.now();
-    if (now - clearArm > 2500){ clearArm = now; toast('Tap CLEAR again to wipe your drawing.'); return; }
-    clearArm = 0; pushUndo(); ED.grid.fill(PALS[ED.pal].paper); edChanged(); SFX.end(); return;
+    if (now - clearArm > 2500){ clearArm = now; toast(ED.shared ? 'Tap CLEAR again to wipe what you drew (your partner keeps theirs).' : 'Tap CLEAR again to wipe your drawing.'); return; }
+    clearArm = 0; pushUndo(); if (ED.shared){ for (let i = 0; i < ED.grid.length; i++) if (ED.own[i] === 1 || ED.own[i] === 3) ED.grid[i] = PALS[ED.pal].paper; } else ED.grid.fill(PALS[ED.pal].paper); edChanged(); SFX.end(); return;
   }
   ED.tool = id === 'brush' ? 'pen' : id; ED.size = id === 'brush' ? 2 : 1;
   syncTools(); SFX.click();
@@ -1350,29 +1415,30 @@ function buildPalette(){
   $('palette').innerHTML = order.map(i => `<button class="swatch" style="background:${pal[i]}" data-c="${i}" aria-label="Color ${i + 1}" aria-pressed="${ED.color === i}"></button>`).join('') +
     `<select class="palsel" id="palSel" aria-label="Palette">${prof.unl.map(p => `<option value="${p}"${p === ED.pal ? ' selected' : ''}>${PALS[p].n}</option>`).join('')}</select>`;
   $('palette').querySelectorAll('[data-c]').forEach(b => b.onclick = () => { ED.color = +b.dataset.c; if (ED.tool === 'erase' || ED.tool === 'pick') ED.tool = 'pen'; syncTools(); buildPaletteSel(); SFX.click(990); });
-  $('palSel').onchange = e => { const old = PALS[ED.pal].paper; ED.pal = e.target.value; const np = PALS[ED.pal].paper; for (let i = 0; i < CELLS; i++) if (ED.grid[i] === old) ED.grid[i] = np; buildPalette(); edChanged(); };
+  $('palSel').onchange = e => { const old = PALS[ED.pal].paper; ED.pal = e.target.value; const np = PALS[ED.pal].paper; for (let i = 0; i < ED.grid.length; i++) if (ED.grid[i] === old) ED.grid[i] = np; buildPalette(); edChanged(); };
 }
 function buildPaletteSel(){ $('palette').querySelectorAll('[data-c]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.c === ED.color)); }
 function pushUndo(){ ED.undo.push(ED.grid.slice()); if (ED.undo.length > 60) ED.undo.shift(); ED.redo = []; }
 function edChanged(){ ED.dirty = true; edRender(); }
 function edRender(){ drawGrid(edCv, ED.grid, ED.pal, {gridLines:ED.gridOn, mirror:ED.mirror, hover:ED.hover}); }
-function cellOf(e){ const r = edCv.getBoundingClientRect(); return [Math.floor((e.clientX - r.left) / r.width * N), Math.floor((e.clientY - r.top) / r.height * N)]; }
+function cellOf(e){ const r = edCv.getBoundingClientRect(), N = ED.n; return [Math.floor((e.clientX - r.left) / r.width * N), Math.floor((e.clientY - r.top) / r.height * N)]; }
 function paintAt(x, y){
-  const c = ED.tool === 'erase' ? PALS[ED.pal].paper : ED.color;
-  for (let j = 0; j < ED.size; j++) for (let i = 0; i < ED.size; i++){
+  const c = ED.tool === 'erase' ? PALS[ED.pal].paper : ED.color, N = ED.n, sz = N > 32 && ED.size === 2 ? 3 : ED.size;
+  for (let j = 0; j < sz; j++) for (let i = 0; i < sz; i++){
     const px = x + i, py = y + j; if (px < 0 || px >= N || py < 0 || py >= N) continue;
-    ED.grid[py * N + px] = c; if (ED.mirror) ED.grid[py * N + (N - 1 - px)] = c;
+    ED.grid[py * N + px] = c; if (ED.own) ED.own[py * N + px] = 1;
+    if (ED.mirror){ ED.grid[py * N + (N - 1 - px)] = c; if (ED.own) ED.own[py * N + (N - 1 - px)] = 1; }
   }
 }
 function lineTo(x0, y0, x1, y1){ const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1; let e = dx + dy; for (let k = 0; k < 100; k++){ paintAt(x0, y0); if (x0 === x1 && y0 === y1) break; const e2 = 2 * e; if (e2 >= dy){ e += dy; x0 += sx; } if (e2 <= dx){ e += dx; y0 += sy; } } }
 function flood(x, y, c){
-  const t = ED.grid[y * N + x]; if (t === c) return;
+  const N = ED.n, t = ED.grid[y * N + x]; if (t === c) return;
   const st = [x, y];
-  while (st.length){ const yy = st.pop(), xx = st.pop(); if (xx < 0 || xx >= N || yy < 0 || yy >= N || ED.grid[yy * N + xx] !== t) continue; ED.grid[yy * N + xx] = c; st.push(xx + 1, yy, xx - 1, yy, xx, yy + 1, xx, yy - 1); }
+  while (st.length){ const yy = st.pop(), xx = st.pop(); if (xx < 0 || xx >= N || yy < 0 || yy >= N || ED.grid[yy * N + xx] !== t) continue; ED.grid[yy * N + xx] = c; if (ED.own) ED.own[yy * N + xx] = 1; st.push(xx + 1, yy, xx - 1, yy, xx, yy + 1, xx, yy - 1); }
 }
 edCv.addEventListener('pointerdown', e => {
   if (!ED.enabled) return; e.preventDefault(); auInit();
-  const [x, y] = cellOf(e); if (x < 0 || x >= N || y < 0 || y >= N) return;
+  const [x, y] = cellOf(e), N = ED.n; if (x < 0 || x >= N || y < 0 || y >= N) return;
   if (ED.tool === 'pick'){ ED.color = ED.grid[y * N + x]; ED.tool = 'pen'; ED.size = 1; syncTools(); buildPaletteSel(); SFX.click(990); return; }
   pushUndo();
   if (ED.tool === 'fill'){ flood(x, y, ED.color); if (ED.mirror){ const mx = N - 1 - x; flood(mx, y, ED.color); } edChanged(); SFX.fill(); return; }
@@ -1380,8 +1446,8 @@ edCv.addEventListener('pointerdown', e => {
   try { edCv.setPointerCapture(e.pointerId); } catch(_){}
 });
 edCv.addEventListener('pointermove', e => {
-  const [x, y] = cellOf(e);
-  if (e.pointerType === 'mouse'){ ED.hover = (x >= 0 && x < N && y >= 0 && y < N) ? [x, y, ED.tool === 'pen' || ED.tool === 'erase' ? ED.size : 1] : null; }
+  const [x, y] = cellOf(e), N = ED.n;
+  if (e.pointerType === 'mouse'){ ED.hover = (x >= 0 && x < N && y >= 0 && y < N) ? [x, y, ED.tool === 'pen' || ED.tool === 'erase' ? (N > 32 && ED.size === 2 ? 3 : ED.size) : 1] : null; }
   if (ED.down && ED.enabled){ const [lx, ly] = ED.last; if (lx !== x || ly !== y){ lineTo(lx, ly, clamp(x, -1, N), clamp(y, -1, N)); ED.last = [x, y]; SFX.dot(); } edChanged(); }
   else if (e.pointerType === 'mouse') edRender();
 });
@@ -1400,14 +1466,15 @@ addEventListener('keydown', e => {
   }
   if (!$('vVote').hidden && /^[0-9]$/.test(e.key)){ const v = e.key === '0' ? 10 : +e.key; if (voteSlots.length) castVote(voteSlots[0], v); }
 });
-function edStart(palId){
-  ED.pal = prof.unl.includes(palId) ? palId : 'pico'; ED.grid = new Uint8Array(CELLS).fill(PALS[ED.pal].paper);
+function edStart(palId, n){
+  ED.n = n || 32; ED.own = null; ED.shared = false;
+  ED.pal = prof.unl.includes(palId) ? palId : 'pico'; ED.grid = new Uint8Array(ED.n * ED.n).fill(PALS[ED.pal].paper);
   ED.color = ED.pal === 'pico' ? 0 : 0; ED.tool = 'pen'; ED.size = 1; ED.mirror = false; ED.undo = []; ED.redo = []; ED.enabled = true; ED.dirty = true;
   buildTools(); buildPalette(); edRender();
 }
 
 // ---------- views ----------
-const VIEWS = ['vTheme', 'vHand', 'vDraw', 'vVote', 'vRes', 'vJudge'];
+const VIEWS = ['vTheme', 'vHand', 'vDraw', 'vVote', 'vRes', 'vJudge', 'vXRes'];
 const SCREENS = ['scrMenu', 'scrModes', 'scrRanks', 'scrPrac', 'scrQueue', 'scrOnline', 'scrRoom'];
 function showView(id){ for (const v of VIEWS) $(v).hidden = v !== id; if (id) for (const s of SCREENS) $(s).hidden = true; }
 function show(id){ for (const s of SCREENS) $(s).hidden = s !== id; if (id) for (const v of VIEWS) $(v).hidden = true; }
@@ -1450,7 +1517,7 @@ function nextHot(){
 }
 $('handGo').onclick = () => { auInit(); if (!GS || GS.phase !== 'hand') return; GS.phase = 'draw'; GS.end = performance.now() + GS.time * 1000; openEditor(); };
 function openEditor(){
-  showView('vDraw'); $('dTheme').textContent = GS.theme; edStart(prof.pal); renderDrawStatus(); musicStart(); lastTickSec = -1;
+  xDrawReset(); showView('vDraw'); $('dTheme').textContent = GS.theme; edStart(prof.pal); renderDrawStatus(); musicStart(); lastTickSec = -1;
   $('dDone').textContent = 'DONE'; $('dDone').disabled = false;
 }
 function renderDrawStatus(){
@@ -1711,11 +1778,18 @@ function startLocal(setup){
   lastSetup = setup; appMode = 'local';
   newGame(setup);
 }
-function toMenu(){ if (MM.on) stopQueue(); else if (MM.lastQ && MM.lastQ !== 'null') setLobbyQ(null); resTimers.forEach(clearTimeout); clearTimeout(reelTimer); GS = null; appMode = 'menu'; ED.enabled = false; musicStop(); showView(null); show('scrMenu'); refreshMenu(); makeFloaters(); }
-function quitGame(){ if (appMode === 'host' || appMode === 'client'){ if (prof.rpend && performance.now() - (quitGame.arm || 0) > 2500){ quitGame.arm = performance.now(); toast('Leaving a ranked match counts as last place. Tap ✕ again to leave.'); return; } leaveRoom(); toMenu(); return; } if (GS && GS.phase !== 'res' && GS.phase !== 'judge'){ if (performance.now() - (quitGame.arm || 0) > 2500){ quitGame.arm = performance.now(); toast('Tap ✕ again to quit this game.'); return; } } toMenu(); }
+function xDrawReset(){ $('vDraw').className = 'view'; $('dDone').hidden = false; $('dTheme').parentNode.firstChild.textContent = 'DRAW: '; }
+function toMenu(){ XG = null; XC.s = null; XC.mid = ''; xDrawReset(); if (MM.on) stopQueue(); else if (MM.lastQ && MM.lastQ !== 'null') setLobbyQ(null); resTimers.forEach(clearTimeout); clearTimeout(reelTimer); GS = null; appMode = 'menu'; ED.enabled = false; musicStop(); showView(null); show('scrMenu'); refreshMenu(); makeFloaters(); }
+function quitGame(){ if (xOn()){ xQuit(); return; } if (appMode === 'host' || appMode === 'client'){ if (prof.rpend && performance.now() - (quitGame.arm || 0) > 2500){ quitGame.arm = performance.now(); toast('Leaving a ranked match counts as last place. Tap ✕ again to leave.'); return; } leaveRoom(); toMenu(); return; } if (GS && GS.phase !== 'res' && GS.phase !== 'judge'){ if (performance.now() - (quitGame.arm || 0) > 2500){ quitGame.arm = performance.now(); toast('Tap ✕ again to quit this game.'); return; } } toMenu(); }
 $('dQuit').onclick = quitGame; $('vQuit').onclick = quitGame;
 $('dDone').onclick = () => {
   auInit();
+  if (xOn()){
+    if (!XC.s || XC.s.k !== 'duo' || XC.s.ph !== 'draw' || XC.rdy) return;
+    XC.rdy = true; $('dDone').textContent = 'WAITING…'; $('dDone').disabled = true;
+    if (XG) XG.rdy.add(XC.me); else if (NET.named) NET.named.presence({xr:XC.mid}).catch(() => {});
+    return;
+  }
   if (appMode === 'client'){ NET.ready = true; flushMyDrawing(true); $('dDone').textContent = 'WAITING…'; $('dDone').disabled = true; return; }
   if (!GS || GS.phase !== 'draw') return;
   if (GS.net){ GS.ready.add(GS.players.find(p => p.kind === 'local').key); $('dDone').textContent = 'WAITING…'; $('dDone').disabled = true; renderDrawStatus(); return; }
@@ -2012,7 +2086,7 @@ async function hostRoom(max){ if (!NET.ok){ toast('Can\'t reach the game servers
 async function joinRoom(code){ code = String(code || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4); if (code.length !== 4){ toast('Room codes are 4 letters.'); return; } if (!NET.ok){ toast('Can\'t reach the game servers right now.'); return; } try { const nr = await NET.room.join(roomName(code)); setupNamed(nr, code, false, 8); } catch(e){ toast('Could not join that room. Check the code and try again.'); } }
 function setupNamed(nr, code, host, max, mm){
   Object.assign(NET, {named:nr, code, host, mid:'', hadHost:false, vWarn:0, rps:{}, pk:null, last:null, hcfg:null, hg:0, hostLostAt:0, hostPeer:'', noPen:false, ranked:!!mm && !!MM.ranked, cache:{}, phase:'', vi:-1, resShown:'', myVotes:{}, mm:!!mm});
-  NET.cfg = {max, bots:0, time:120};
+  NET.cfg = {max, bots:0, time:120, mode:'classic'}; XC.mid = ''; XC.s = null;
   const base = {nm:myName(), j:Date.now(), v:GAME_V, rp:prof.rp | 0};
   nr.presence(host ? Object.assign(base, {host:1, ph:'room', cfg:NET.cfg, rk:NET.ranked ? 1 : 0}) : base).catch(() => {});
   NET.unsub = nr.onPeers(onRoomPeers, () => { NET.noPen = true; toast('Lost the connection to the room.'); leaveRoom(); toMenu(); });
@@ -2025,7 +2099,7 @@ function setupNamed(nr, code, host, max, mm){
 const hostOf = peers => { let best = null; for (const p of peers) if (p.presence && p.presence.host === 1 && !p.sameTab && (!best || (p.presence.hg | 0) > (best.presence.hg | 0))) best = p; return best; };
 function findHost(){ return NET.named ? hostOf(NET.named.peers()) : null; }
 function roomHumans(){ return NET.named ? NET.named.peers().filter(p => p.presence && typeof p.presence.nm === 'string').sort((a, b) => (+a.presence.j || 0) - (+b.presence.j || 0)) : []; }
-function updateOpenPresence(){ if (!NET.room || !NET.host || !NET.named || NET.mm) return; NET.room.presence({open:{c:NET.code, n:clamp(roomHumans().length, 1, NET.cfg.max), m:NET.cfg.max, g:appMode === 'host' ? 1 : 0, v:GAME_V}}).catch(() => {}); }
+function updateOpenPresence(){ if (!NET.room || !NET.host || !NET.named || NET.mm) return; NET.room.presence({open:{c:NET.code, n:clamp(roomHumans().length, 1, NET.cfg.max), m:NET.cfg.max, g:appMode === 'host' || appMode === 'xhost' ? 1 : 0, v:GAME_V}}).catch(() => {}); }
 function renderRoom(){
   if (!NET.named) return;
   $('roomCode').textContent = NET.code;
@@ -2035,11 +2109,17 @@ function renderRoom(){
   hum.forEach((p, i) => { const li = document.createElement('li'); li.innerHTML = '<i></i><span></span><small></small>'; li.querySelector('i').style.background = ['#ff77a8', '#41a6f6', '#ffcd75', '#a7f070', '#73eff7', '#ef7d57', '#c58bff', '#f4f4f4'][i % 8]; li.querySelector('span').textContent = cleanName(p.presence.nm) || 'Someone'; li.querySelector('small').textContent = [p.presence.host === 1 ? 'HOST' : '', p.sameTab ? 'YOU' : '', i >= cfg.max ? 'NEXT GAME' : ''].filter(Boolean).join(' · '); $('roomPlayers').appendChild(li); });
   const nb = NET.host ? NET.cfg.bots : (+cfg.bots | 0);
   if (nb > 0){ const li = document.createElement('li'); li.innerHTML = '<i style="background:#566c86"></i><span></span><small>BOTS</small>'; li.querySelector('span').textContent = `+ ${nb} bot artist${nb === 1 ? '' : 's'}`; $('roomPlayers').appendChild(li); }
+  const mode = cfg.mode || 'classic';
+  if (mode !== 'classic') $('roomMode').textContent = mode === 'duo' ? `2V2 team draw · ${hum.length > 4 ? 'first 4 play' : 'bots fill empty spots'} · 3:00 to draw` : `Charades · up to 8 players · 60s turns`;
   $('hostCtl').hidden = !NET.host; $('guestWait').hidden = NET.host;
   if (NET.host){
     const humans = Math.min(hum.length, NET.cfg.max); NET.cfg.bots = clamp(NET.cfg.bots, 0, NET.cfg.max - humans); $('rbN').textContent = NET.cfg.bots;
+    const MODES = [['classic', 'CLASSIC'], ['duo', '2V2'], ['cha', 'CHARADES']];
+    $('roomModeSel').innerHTML = MODES.map(([k, l]) => `<button data-m="${k}" aria-pressed="${k === mode}">${l}</button>`).join('');
+    $('roomModeSel').querySelectorAll('button').forEach(b => b.onclick = () => { NET.cfg.mode = b.dataset.m; NET.named.presence({cfg:NET.cfg}).catch(() => {}); SFX.click(); renderRoom(); });
+    $('roomTime').hidden = $('roomTimeLbl').hidden = mode !== 'classic'; $('rbStep').style.visibility = mode === 'duo' ? 'hidden' : '';
     seg($('roomTime'), NET.cfg.time, s => { NET.cfg.time = s; NET.named.presence({cfg:NET.cfg}).catch(() => {}); renderRoom(); });
-    $('roomGo').disabled = humans + NET.cfg.bots < 2; $('roomGo').textContent = humans + NET.cfg.bots < 2 ? 'WAITING…' : 'START';
+    const enough = mode === 'duo' ? humans >= 1 : humans + NET.cfg.bots >= 2; $('roomGo').disabled = !enough; $('roomGo').textContent = enough ? 'START' : 'WAITING…';
   }
 }
 $('rbMinus').onclick = () => { NET.cfg.bots--; renderRoom(); NET.named && NET.named.presence({cfg:NET.cfg}).catch(() => {}); };
@@ -2052,6 +2132,16 @@ $('copyCode').onclick = () => { const s = `Art battle! Go to pixelbattlegame.git
 $('roomGo').onclick = () => hostStart();
 function hostStart(){
   if (!NET.named || !NET.host) return;
+  const mode = NET.cfg.mode || 'classic';
+  if (mode === 'duo' || mode === 'cha'){
+    const hum = roomHumans().slice(0, XINFO[mode].max);
+    const humans = hum.map((p, i) => ({key:'p:' + p.peer, nm:cleanName(p.presence.nm) || 'Artist ' + (i + 1), kind:p.sameTab ? 'local' : 'remote'}));
+    const nb = mode === 'duo' ? 4 - humans.length : NET.mm ? Math.max(0, 4 - humans.length) : clamp(NET.cfg.bots, 0, XINFO.cha.max - humans.length);
+    if (humans.length + nb < 2){ toast('You need at least 2 players. Add a bot or wait for a friend.'); return; }
+    appMode = 'xhost'; NET.hg = (NET.hg | 0) + 1;
+    NET.named.presence({dr:null, vt:null}).catch(() => {});
+    xStart(mode, humans, nb, true); updateOpenPresence(); return;
+  }
   const hum = roomHumans().slice(0, NET.cfg.max);
   const humans = hum.map((p, i) => ({nm:cleanName(p.presence.nm) || 'Artist ' + (i + 1), kind:p.sameTab ? 'local' : 'remote', peer:p.peer, slot:0}));
   if (humans.length + NET.cfg.bots < 2){ toast('You need at least 2 artists. Add a bot or wait for a friend.'); return; }
@@ -2067,7 +2157,8 @@ function leaveRoom(){
   if (NET.named){ try { NET.unsub && NET.unsub(); } catch(e){} NET.named.leave().catch(() => {}); }
   NET.named = null; NET.host = false; NET.mid = '';
   if (NET.room) NET.room.presence({open:null}).catch(() => {});
-  if (appMode === 'host' || appMode === 'client' || appMode === 'room') appMode = 'menu';
+  if (appMode === 'host' || appMode === 'client' || appMode === 'room' || appMode === 'xhost' || appMode === 'xclient') appMode = 'menu';
+  XG = null;
 }
 // host -> room state
 function hostSync(force){
@@ -2176,6 +2267,10 @@ function onRoomPeers(ch){
   if (NET.host){ if (appMode === 'room') renderRoom(); if (ch.joined.length || ch.left.length) updateOpenPresence(); if (GS && GS.phase === 'draw') renderDrawStatus(); return; }
   const h = hostOf(ch.peers);
   if (!h){
+    if (NET.hadHost && appMode === 'xclient'){
+      if (NET.mm && !$('vXRes').hidden){ leaveRoom(); return; }
+      toast('The host left, so the match ended.'); leaveRoom(); toMenu(); return;
+    }
     if (NET.hadHost){
       if (appMode === 'client' && LIVE.includes(NET.phase)){ if (!NET.hostLostAt) NET.hostLostAt = performance.now(); hostWatch(); return; }
       if (NET.mm && !$('vRes').hidden){ toast('The host left the lobby.'); leaveRoom(); }
@@ -2189,7 +2284,8 @@ function onRoomPeers(ch){
   NET.hadHost = true; clearTimeout(NET.joinTimer);
   const pr = h.presence, now = performance.now();
   NET.last = pr; if (Array.isArray(pr.pk)) NET.pk = pr.pk.slice(0, 12).map(String); if (pr.cfg) NET.hcfg = pr.cfg;
-  if (pr.ph === 'room' || !pr.ph){ if (appMode === 'client'){ appMode = 'room'; ED.enabled = false; musicStop(); show(NET.mm ? 'scrQueue' : 'scrRoom'); } renderRoom(); return; }
+  if (pr.ph === 'x' && pr.x){ xFromHost(pr.x, ch.peers); NET.phase = 'x'; return; }
+  if (pr.ph === 'room' || !pr.ph){ if (appMode === 'client' || appMode === 'xclient'){ appMode = 'room'; ED.enabled = false; musicStop(); show(NET.mm ? 'scrQueue' : 'scrRoom'); } renderRoom(); return; }
   if (pr.mid !== NET.mid){
     const meP = NET.named.peers().find(p => p.sameTab);
     if (Array.isArray(pr.pk) && meP && !pr.pk.includes('p:' + meP.peer)){
@@ -2209,7 +2305,7 @@ function onRoomPeers(ch){
   else if (pr.ph === 'draw'){
     const end = now + rem * 1000; if (phaseChanged || Math.abs(end - NET.endAt) > 1500) NET.endAt = end;
     if (phaseChanged && NET.ranked){ const me = ch.peers.find(p => p.sameTab); rankedArm(NET.mid, (NET.pk || []).filter(k => !me || k !== 'p:' + me.peer)); }
-    if (phaseChanged){ showView('vDraw'); $('dTheme').textContent = NET.theme; edStart(prof.pal); musicStart(); $('dDone').textContent = 'DONE'; $('dDone').disabled = false; lastTickSec = -1; NET.lastDr = ''; NET.lastDrT = 0; }
+    if (phaseChanged){ xDrawReset(); showView('vDraw'); $('dTheme').textContent = NET.theme; edStart(prof.pal); musicStart(); $('dDone').textContent = 'DONE'; $('dDone').disabled = false; lastTickSec = -1; NET.lastDr = ''; NET.lastDrT = 0; }
     const rdy = Array.isArray(pr.rdy) ? pr.rdy : [];
     $('dStatus').innerHTML = roomHumans().map(p => `<span class="who${rdy.includes('p:' + p.peer) || (p.presence.rdy === NET.mid) ? ' done' : ''}">${esc(p.sameTab ? 'You' : cleanName(p.presence.nm))}</span>`).join('') + NET.bots.map(b => `<span class="who done">${esc(cleanName(b[0]))} ✓</span>`).join('');
   }
@@ -2237,16 +2333,18 @@ function onRoomPeers(ch){
 function netVote(v){ NET.myVotes[NET.vi] = v; NET.named && NET.named.presence({vt:{m:NET.mid, v:Object.assign({}, NET.myVotes)}}).catch(() => {}); }
 
 // ---------- matchmaking ----------
-const MM = {ranked:false, aloneTxt:'', on:false, t:0, timer:0, cdEnd:0, startT:0, tipT:0, tipI:0, busy:false, bad:{}, lastQ:'', lastCd:null};
+const MM = {kind:'q', ranked:false, aloneTxt:'', on:false, t:0, timer:0, cdEnd:0, startT:0, tipT:0, tipI:0, busy:false, bad:{}, lastQ:'', lastCd:null};
 const TIPS = ['Mirror mode (M) makes symmetrical art in half the time.', 'Fill the background first. It makes your drawing pop.', 'Dark outlines make pixel art easier to read.', 'Stick to 3–6 colors. Too many looks messy.', 'Number keys 1–9 pick colors fast.', 'Votes stay anonymous until the results.', 'Big shapes first, details last.', 'The pick tool (I) grabs a color from your drawing.'];
 $('bFind').onclick = () => { auInit(); startQueue(false); };
 $('bRanked').onclick = () => { auInit(); startQueue(true); };
 function myLobbyPeer(){ const m = NET.lobbyPeers.find(p => p.sameTab); return m ? m.peer : ''; }
 function setLobbyQ(q){ const k = JSON.stringify(q); if (k === MM.lastQ) return; MM.lastQ = k; if (NET.room) NET.room.presence({[qKey()]:q}).catch(() => {}); }
-function startQueue(ranked){
-  if (ranked === undefined) ranked = !!MM.ranked;
+const mmMax = () => MM.kind === 'd' ? 4 : 8;
+const MM_LBL = {q:'', r:'RANKED ', d:'2V2 ', c:'CHARADES '};
+function startQueue(kind){
+  if (kind === undefined) kind = MM.kind; else if (kind === true) kind = 'r'; else if (kind === false) kind = 'q';
   if (MM.lastQ && MM.lastQ !== 'null') setLobbyQ(null);
-  MM.ranked = !!ranked;
+  MM.kind = kind; MM.ranked = kind === 'r';
   show('scrQueue'); appMode = NET.named ? appMode : 'menu';
   Object.assign(MM, {on:true, t:Date.now(), startT:performance.now(), cdEnd:0, tipT:0, busy:false, lastQ:'', lastCd:null});
   $('qAlone').hidden = true; $('qBots').hidden = true; renderQueue(-1);
@@ -2261,18 +2359,18 @@ function startQueue(ranked){
 }
 function stopQueue(keep){ MM.on = false; clearInterval(MM.timer); if (!keep) setLobbyQ(null); }
 $('qCancel').onclick = () => { stopQueue(); if (NET.named) leaveRoom(); appMode = 'menu'; show('scrMenu'); refreshMenu(); };
-$('qBots').onclick = () => { stopQueue(); if (NET.named) leaveRoom(); startLocal({humans:[meHuman()], bots:7, time:120}); };
+$('qBots').onclick = () => { stopQueue(); if (NET.named) leaveRoom(); if (MM.kind === 'd' || MM.kind === 'c'){ xLocal(MM.kind === 'd' ? 'duo' : 'cha'); return; } startLocal({humans:[meHuman()], bots:7, time:120}); };
 $('rFind').onclick = () => { auInit(); resTimers.forEach(clearTimeout); if (NET.named) leaveRoom(); GS = null; showView(null); startQueue(!!RES.ranked); };
-const qKey = () => (MM.ranked ? 'r' : 'q') + GAME_V;   // separate queues for ranked and casual, and for each game version
+const qKey = () => MM.kind + GAME_V;   // separate queues for each mode and each game version
 const qOf = p => { const q = p.presence && p.presence[qKey()]; return q && typeof q.t === 'number' ? q : null; };
-function mmHosts(){ return NET.lobbyPeers.filter(p => { const q = qOf(p); return !p.sameTab && q && typeof q.h === 'string' && !q.g && (q.n | 0) < 8 && !MM.bad[q.h]; }).sort((a, b) => (qOf(a).t - qOf(b).t) || (a.peer < b.peer ? -1 : 1)); }
+function mmHosts(){ return NET.lobbyPeers.filter(p => { const q = qOf(p); return !p.sameTab && q && typeof q.h === 'string' && !q.g && (q.n | 0) < mmMax() && !MM.bad[q.h]; }).sort((a, b) => (qOf(a).t - qOf(b).t) || (a.peer < b.peer ? -1 : 1)); }
 async function mmHost(){
   const code = genCode();
-  try { const nr = await NET.room.join(roomName(code)); setupNamed(nr, code, true, 8, true); setLobbyQ({t:MM.t, h:code, n:1}); }
+  try { const nr = await NET.room.join(roomName(code)); setupNamed(nr, code, true, mmMax(), true); setLobbyQ({t:MM.t, h:code, n:1}); }
   catch(e){ /* try again next tick */ }
 }
 async function mmJoin(code){
-  try { const nr = await NET.room.join(roomName(code)); setupNamed(nr, code, false, 8, true); setLobbyQ({t:MM.t, in:code}); }
+  try { const nr = await NET.room.join(roomName(code)); setupNamed(nr, code, false, mmMax(), true); setLobbyQ({t:MM.t, in:code}); }
   catch(e){ MM.bad[code] = 1; }
 }
 function renderQueue(rem){
@@ -2280,14 +2378,14 @@ function renderQueue(rem){
   const found = rem >= 0;
   $('scrQueue').querySelector('.loader').classList.toggle('found', found);
   $('qBarWrap').classList.toggle('fill', found);
-  if (found){ $('qTitle').textContent = MM.ranked ? 'RANKED MATCH FOUND!' : 'MATCH FOUND!'; $('qSub').textContent = rem > 0 ? `Loading the battle in ${rem}…` : 'Loading the battle…'; $('qBar').style.width = clamp((12 - rem) / 12 * 100, 6, 100) + '%'; }
-  else { $('qTitle').textContent = MM.ranked ? 'FINDING RANKED MATCH' : 'FINDING PLAYERS'; $('qSub').textContent = inRoom ? 'You are in a lobby. Waiting for more artists to join…' : MM.ranked ? `You are ${tierOf(prof.rp).name} with ${prof.rp} RP. Looking for ranked players…` : 'Looking for artists who are online right now.'; $('qBar').style.width = ''; }
+  if (found){ $('qTitle').textContent = MM_LBL[MM.kind] + 'MATCH FOUND!'; $('qSub').textContent = rem > 0 ? `Loading the battle in ${rem}…` : 'Loading the battle…'; $('qBar').style.width = clamp((12 - rem) / 12 * 100, 6, 100) + '%'; }
+  else { $('qTitle').textContent = MM.ranked ? 'FINDING RANKED MATCH' : MM.kind === 'd' ? 'FINDING 2V2 PLAYERS' : MM.kind === 'c' ? 'FINDING CHARADES PLAYERS' : 'FINDING PLAYERS'; $('qSub').textContent = inRoom ? 'You are in a lobby. Waiting for more artists to join…' : MM.ranked ? `You are ${tierOf(prof.rp).name} with ${prof.rp} RP. Looking for ranked players…` : 'Looking for artists who are online right now.'; $('qBar').style.width = ''; }
   const names = inRoom ? hum.map(p => ({nm:cleanName(p.presence.nm) || 'Artist', me:p.sameTab, host:p.presence.host === 1, rk:MM.ranked ? tierOf(clamp(p.presence.rp | 0, 0, 9999)).name : ''})) : [{nm:myName(), me:true, rk:MM.ranked ? tierOf(prof.rp).name : ''}];
   const key = JSON.stringify(names);
   if (key !== MM.lastList){ MM.lastList = key;
     $('qPlayers').innerHTML = '';
     names.forEach((n, i) => { const li = document.createElement('li'); li.innerHTML = '<i></i><span></span><small></small>'; li.querySelector('i').style.background = ['#ff77a8', '#41a6f6', '#ffcd75', '#a7f070', '#73eff7', '#ef7d57', '#c58bff', '#f4f4f4'][i % 8]; li.querySelector('span').textContent = n.nm; li.querySelector('small').textContent = n.rk ? n.rk + (n.me ? ' · YOU' : '') : n.me ? 'YOU' : 'READY'; $('qPlayers').appendChild(li); });
-    for (let i = names.length; i < Math.max(2, Math.min(8, names.length + 1)); i++){ const li = document.createElement('li'); li.style.opacity = .45; li.innerHTML = '<i style="background:#566c86"></i><span>Searching…</span>'; $('qPlayers').appendChild(li); }
+    for (let i = names.length; i < Math.max(2, Math.min(mmMax(), names.length + 1)); i++){ const li = document.createElement('li'); li.style.opacity = .45; li.innerHTML = '<i style="background:#566c86"></i><span>Searching…</span>'; $('qPlayers').appendChild(li); }
   }
 }
 function mmBounce(){
@@ -2320,13 +2418,13 @@ async function mmTick(){
     const rem = MM.cdEnd ? Math.max(0, Math.ceil((MM.cdEnd - now) / 1000)) : -1;
     if (rem !== MM.lastCd){ MM.lastCd = rem; NET.named.presence({mmcd:rem}).catch(() => {}); }
     renderQueue(rem);
-    if (MM.cdEnd && (now >= MM.cdEnd || hum >= 8)){
+    if (MM.cdEnd && (now >= MM.cdEnd || hum >= mmMax())){
       MM.cdEnd = 0; setLobbyQ({t:MM.t, h:NET.code, n:hum, g:1}); stopQueue(true);
-      NET.cfg = {max:8, bots:0, time:120}; hostStart();
+      NET.cfg = {max:mmMax(), bots:0, time:120, mode:MM.kind === 'd' ? 'duo' : MM.kind === 'c' ? 'cha' : 'classic'}; hostStart();
     }
   } else {
     const hum = roomHumans(), idx = hum.findIndex(p => p.sameTab);
-    if (idx >= 8){ mmBounce(); return; }
+    if (idx >= mmMax()){ mmBounce(); return; }
     const h = findHost(); const rem = h && typeof h.presence.mmcd === 'number' ? h.presence.mmcd : -1;
     renderQueue(rem);
   }
@@ -2336,6 +2434,414 @@ async function mmTick(){
   if (alone && el > 35){ $('qAlone').hidden = false; $('qBots').hidden = !!MM.ranked; }
   else if (!alone){ $('qAlone').hidden = true; }
 }
+
+// ---------- other gamemodes: 2v2 team canvas and charades ----------
+// The host (or your own device, in a game with only bots) runs the match and shares a snapshot `x`;
+// every device, the host included, draws the screen from that same snapshot.
+const XINFO = {duo:{name:'2V2', max:4, time:180}, cha:{name:'CHARADES', max:8, turn:60}};
+let XG = null;
+const XC = {me:'', mid:'', kind:'', ph:'', ti:-1, s:null, endAt:0, resShown:'', gseq:0, gl:[], rdy:false, lastXc:'', lastXcT:0, cvSrc:'', partner:'', bot:null, pa:{a:0}, ds:null, lastPub:0, feedKey:'', statKey:'', lastSec:-1};
+const xOn = () => appMode === 'xhost' || appMode === 'xclient' || appMode === 'xlocal';
+const rid = () => Math.random().toString(36).slice(2, 8);
+const B64I = {}; for (let i = 0; i < 64; i++) B64I[B64[i]] = i;
+// any-size grids: 5-bit raw ('B') or run-length ('R'), whichever is shorter
+function encAny(g){
+  let raw = '', acc = 0, bits = 0; for (let i = 0; i < g.length; i++){ acc = (acc << 5) | (g[i] & 31); bits += 5; while (bits >= 8){ bits -= 8; raw += String.fromCharCode((acc >> bits) & 255); } acc &= (1 << bits) - 1; } if (bits) raw += String.fromCharCode((acc << (8 - bits)) & 255);
+  raw = 'B' + btoa(raw);
+  let rle = 'R';
+  for (let i = 0; i < g.length && rle.length < raw.length;){ const c = g[i] & 31; let j = i + 1; while (j < g.length && (g[j] & 31) === c) j++; let L = j - i - 1; rle += B64[c]; do { rle += B64[32 + (L & 31)]; L >>= 5; } while (L); i = j; }
+  return rle.length < raw.length ? rle : raw;
+}
+function decAny(s, n){
+  const g = new Uint8Array(n); s = String(s || '');
+  try {
+    if (s[0] === 'R'){ let k = 0, i = 1; while (i < s.length && k < n){ const c = B64I[s[i++]] & 31; let L = 0, sh = 0; while (i < s.length && B64I[s[i]] >= 32){ L |= (B64I[s[i++]] - 32) << sh; sh += 5; } for (let r = 0; r <= L && k < n; r++) g[k++] = c; } }
+    else if (s[0] === 'B'){ const b = atob(s.slice(1)); let acc = 0, bits = 0, k = 0; for (let i = 0; i < b.length && k < n; i++){ acc = (acc << 8) | b.charCodeAt(i); bits += 8; while (bits >= 5 && k < n){ bits -= 5; g[k++] = (acc >> bits) & 31; } acc &= (1 << bits) - 1; } }
+  } catch(e){}
+  return g;
+}
+const up2 = g => { const o = new Uint8Array(4096); for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) o[y * 64 + x] = g[(y >> 1) * 32 + (x >> 1)]; return o; };
+function down2(g){ const o = new Uint8Array(CELLS); for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++){ const a = [g[(2 * y) * 64 + 2 * x], g[(2 * y) * 64 + 2 * x + 1], g[(2 * y + 1) * 64 + 2 * x], g[(2 * y + 1) * 64 + 2 * x + 1]]; let best = a[0], bn = 0; for (const v of a){ const c = a.filter(u => u === v).length; if (c > bn){ bn = c; best = v; } } o[y * 32 + x] = best; } return o; }
+const opPack = v => B64[(v >> 12) & 63] + B64[(v >> 6) & 63] + B64[v & 63];
+const opUnpack = (s, i) => (B64I[s[i]] << 12) | (B64I[s[i + 1]] << 6) | B64I[s[i + 2]];
+const xPeers = () => NET.named ? NET.named.peers() : [];
+const xPeerOf = key => xPeers().find(p => 'p:' + p.peer === key);
+function xName(S, key){ if (key === XC.me) return 'You'; return (S && S.nm && S.nm[key]) || 'Artist'; }
+// bots paint their picture a few cells at a time: background first, then each colour from the most used to the least
+function paintOrder(art, paper){
+  const cnt = new Array(32).fill(0); for (const v of art) cnt[v]++;
+  const idx = []; for (let i = 0; i < art.length; i++) if (art[i] !== paper) idx.push(i);
+  return idx.sort((a, b) => (cnt[art[b]] - cnt[art[a]]) || (a - b));
+}
+
+// ---------- starting ----------
+function xStart(kind, humans, nb, net){
+  const names = BOT_NAMES.slice().sort(() => Math.random() - .5);
+  const pl = humans.map(h => ({key:h.key, nm:h.nm, kind:h.kind}));
+  for (let i = 0; i < nb; i++) pl.push({key:'b:' + i, nm:names[i % names.length], kind:'bot', seed:Math.floor(Math.random() * 1e9), skill:[1, 2, 0, 2, 1, 0, 2][i % 7]});
+  XG = {kind, net, mid:rid(), pl, ph:'', end:0, sync:0, pub:0, lastS:'', sc:{}, rdy:new Set(), cache:{}, gs:{}};
+  pl.forEach(p => { XG.sc[p.key] = 0; });
+  XC.me = (humans.find(h => h.kind === 'local') || {}).key || 'me';
+  if (kind === 'duo'){
+    XG.th = nextTheme(BOT_THEMES); XG.ph = 'theme'; XG.end = performance.now() + 4200;
+    XG.tm = [[pl[0].key, pl[1].key], [pl[2].key, pl[3].key]];
+  } else {
+    XG.order = pl.map(p => p.key).sort(() => Math.random() - .5); XG.ti = -1; XG.feed = [];
+    chaNextTurn();
+  }
+  xPublish(true);
+}
+function xLocal(kind){
+  auInit(); if (NET.named) leaveRoom();
+  appMode = 'xlocal'; lastX = kind;
+  xStart(kind, [{key:'me', nm:myName(), kind:'local'}], kind === 'duo' ? 3 : 5, false);
+}
+let lastX = 'duo';
+function xSnapshot(){
+  const now = performance.now(), G = XG, nm = {}, bs = {};
+  G.pl.forEach(p => { nm[p.key] = p.nm; if (p.kind === 'bot') bs[p.key] = [p.seed, p.skill]; });
+  const S = {k:G.kind, mid:G.mid, ph:G.ph, rem:Math.max(0, Math.round((G.end - now) / 100) / 10), nm, pl:G.pl.map(p => p.key)};
+  if (G.kind === 'duo'){ Object.assign(S, {th:G.th, tm:G.tm, bs, rdy:[...G.rdy]}); if (G.res) S.res = G.res; if (G.tt) S.tt = G.tt; }
+  else {
+    Object.assign(S, {ti:G.ti, tn:G.order.length, dr:G.t ? G.t.dr : '', sc:G.sc, fd:G.feed.slice(-8), ok:G.t ? [...G.t.ok.keys()] : []});
+    if (G.t){ if (G.ph === 'turn') { S.w = obf(G.t.w, G.mid); S.hint = chaHint(G.t, now); } else S.rw = G.t.w; }
+    if (G.ph === 'turn' && G.t && G.t.botArt) S.bd = 1;
+  }
+  return S;
+}
+function xPublish(force){
+  if (!XG) return;
+  const now = performance.now();
+  if (!force && now - XG.sync < 400) return;
+  XG.sync = now;
+  const S = xSnapshot(), k = JSON.stringify(S);
+  xRender(S);
+  if (XG.net && NET.named && (force || k !== XG.lastS || now - XG.pub > 2500)){ XG.lastS = k; XG.pub = now; NET.named.presence({host:1, hg:NET.hg | 0, ph:'x', mid:XG.mid, x:S}).catch(() => {}); }
+}
+
+// ---------- host loop ----------
+function xHostTick(now){
+  const G = XG; if (!G) return;
+  const peers = xPeers(), here = k => { const p = G.pl.find(q => q.key === k); return p && (p.kind === 'local' || p.kind === 'bot' || (p.kind === 'remote' && peers.some(q => 'p:' + q.peer === k))); };
+  if (G.kind === 'duo'){
+    if (G.ph === 'theme' && now >= G.end){ G.ph = 'draw'; G.end = now + XINFO.duo.time * 1000; xPublish(true); }
+    else if (G.ph === 'draw'){
+      for (const p of G.pl) if (p.kind === 'remote'){ const pp = xPeerOf(p.key); if (pp && pp.presence && pp.presence.xr === G.mid && !G.rdy.has(p.key)){ G.rdy.add(p.key); xPublish(true); } }
+      const hum = G.pl.filter(p => p.kind !== 'bot' && here(p.key));
+      if (hum.length && hum.every(p => G.rdy.has(p.key))) G.end = Math.min(G.end, now);
+      if (now >= G.end){ G.ph = 'collect'; G.end = now + 3500; xPublish(true); }
+    }
+    else if (G.ph === 'collect'){
+      for (const p of G.pl) if (p.kind === 'remote'){ const pp = xPeerOf(p.key); if (pp && pp.presence && pp.presence.xf && pp.presence.xf.m === G.mid) G.cache[p.key] = pp.presence.xf; }
+      if (now >= G.end){
+        const S = xSnapshot(), R = mulberry(Date.now() & 0xffff);
+        G.res = []; G.tt = [];
+        for (let t = 0; t < 2; t++){ const g = duoCanvas(S, t), s = down2(g); let sum = 0; for (let j = 0; j < 3; j++) sum += judge(s, R, G.th); const sc = blankCanvas(s) ? 1 : sum / 3; G.res.push(Math.round(sc * 10)); G.tt.push(botVerdict(s, G.th, Math.round(sc)).title); }
+        G.ph = 'res'; G.end = now; xPublish(true);
+      }
+    }
+  } else {
+    const t = G.t;
+    if (G.ph === 'intro' && now >= G.end){ G.ph = 'turn'; t.start = now; G.end = now + XINFO.cha.turn * 1000; xPublish(true); }
+    else if (G.ph === 'turn'){
+      // guesses from players on other devices
+      for (const p of G.pl) if (p.kind === 'remote'){ const pp = xPeerOf(p.key), xg = pp && pp.presence && pp.presence.xg; if (!xg || xg.m !== G.mid || xg.t !== G.ti || !Array.isArray(xg.g)) continue; const last = G.gs[p.key] | 0; for (const [s, txt] of xg.g) if (+s > last){ G.gs[p.key] = +s; chaGuess(p.key, String(txt)); } }
+      chaBots(now);
+      if (t.botArt) chaBotPaint(now);
+      const guessers = G.pl.filter(p => p.key !== t.dr && here(p.key));
+      if (!here(t.dr) && !t.skip){ t.skip = 1; chaFeed('', `${(G.pl.find(p => p.key === t.dr) || {}).nm || 'The drawer'} left, so this turn is skipped.`, 'sys'); G.end = now; }
+      if (guessers.length && guessers.every(p => t.ok.has(p.key))) G.end = Math.min(G.end, now + 1200);
+      if (now >= G.end){ G.ph = 'reveal'; G.end = now + 5000; chaFeed('', `The word was ${t.w}.`, 'sys'); xPublish(true); }
+    }
+    else if (G.ph === 'reveal' && now >= G.end) chaNextTurn();
+  }
+  xPublish(false);
+}
+// ---------- 2v2 ----------
+function duoCanvas(S, t){
+  const team = S.tm[t] || [], bots = team.filter(k => k.startsWith('b:'));
+  if (team.includes(XC.me) && ED.n === 64 && ED.grid) return ED.grid.slice();
+  for (const k of team){
+    if (k.startsWith('b:')) continue;
+    const pp = xPeerOf(k), xf = pp && pp.presence && pp.presence.xf;
+    if (xf && xf.m === S.mid) return decAny(xf.f, 4096);
+    if (XG && XG.cache[k]) return decAny(XG.cache[k].f, 4096);
+  }
+  if (bots.length){ const b = S.bs[bots[0]] || [1, 1]; return up2(makeArt(S.th, b[0] >>> 0, 2)); }
+  return new Uint8Array(4096).fill(7);
+}
+function duoTeamOf(S, key){ return S.tm.findIndex(t => t.includes(key)); }
+function duoEnterDraw(S){
+  showView('vDraw'); $('vDraw').className = 'view duo';
+  $('dTheme').textContent = S.th; edStart(prof.pal, 64); ED.own = new Uint8Array(4096); ED.shared = true;
+  XC.ds = {base:ED.grid.slice(), log:[], n:0, snapN:-1, lastSnap:0, lastPub:0, lastKey:''}; XC.pa = {a:0}; XC.rdy = false;
+  const myT = duoTeamOf(S, XC.me), team = S.tm[myT] || [];
+  XC.partner = team.find(k => k !== XC.me) || '';
+  XC.bot = null;
+  if (XC.partner.startsWith('b:')){ const b = S.bs[XC.partner] || [1, 1], art = up2(makeArt(S.th, b[0] >>> 0, clamp(b[1] | 0, 0, 2))); XC.bot = {art, order:paintOrder(art, PALS.pico.paper), i:0, t0:performance.now()}; }
+  musicStart(); lastTickSec = -1; $('dDone').textContent = 'DONE'; $('dDone').disabled = false; $('dDone').hidden = false;
+  if (NET.named) NET.named.presence({xr:0, xo:null, xf:null}).catch(() => {});
+}
+function duoStatus(S){
+  const myT = Math.max(0, duoTeamOf(S, XC.me)), rd = new Set(S.rdy || []);
+  const tag = k => `<span class="who${rd.has(k) || k.startsWith('b:') ? ' done' : ''}">${esc(xName(S, k))}${k.startsWith('b:') ? ' (bot)' : rd.has(k) ? ' ✓' : ''}</span>`;
+  const h = `<span class="who" style="border-left-color:var(--y)">YOUR TEAM</span>${S.tm[myT].map(tag).join('')}<span class="who" style="border-left-color:var(--q)">VS</span>${S.tm[1 - myT].map(tag).join('')}`;
+  if (h !== XC.statKey){ XC.statKey = h; $('dStatus').innerHTML = h; }
+}
+// my strokes go out as small edits; my teammate's edits are painted onto my canvas as they arrive
+function duoSyncTick(now){
+  const D = XC.ds; if (!D || !ED.grid || ED.n !== 64) return;
+  // bot teammate: paints its picture onto empty cells over the first two minutes
+  if (XC.bot && ED.enabled){ const B = XC.bot, want = Math.floor(B.order.length * clamp((now - B.t0) / 120000, 0, 1)); let changed = false; while (B.i < want){ const c = B.order[B.i++]; if (ED.grid[c] === PALS.pico.paper && ED.own[c] === 0){ ED.grid[c] = B.art[c]; ED.own[c] = 3; changed = true; } } if (changed) edChanged(); }
+  if (!NET.named || now - D.lastPub < 250) return;
+  D.lastPub = now;
+  for (let i = 0; i < 4096; i++) if (ED.grid[i] !== D.base[i]){ D.base[i] = ED.grid[i]; D.log.push(i << 5 | ED.grid[i]); D.n++; }
+  if (D.log.length > 400) D.log.splice(0, D.log.length - 400);
+  const patch = {};
+  if (D.n !== D.snapN && (D.n - Math.max(0, D.snapN) > 280 || now - D.lastSnap > 5000)){ D.snapN = D.n; D.lastSnap = now; D.snap = encAny(D.base); patch.xf = {m:XC.mid, n:D.n, f:D.snap}; }
+  const room = Math.floor((3500 - (D.snap ? D.snap.length : 0)) / 3), k = clamp(Math.min(D.n - Math.max(0, D.snapN), D.log.length, 300), 0, Math.max(0, room));
+  const o = D.log.slice(D.log.length - k).map(opPack).join('');
+  const key = D.n + '|' + D.snapN; if (key !== D.lastKey){ D.lastKey = key; patch.xo = {m:XC.mid, n:D.n, o}; }
+  if (patch.xo || patch.xf) NET.named.presence(patch).catch(() => {});
+  // teammate
+  const pp = XC.partner && !XC.partner.startsWith('b:') ? xPeerOf(XC.partner) : null, pr = pp && pp.presence;
+  if (!pr) return;
+  const st = XC.pa, xo = pr.xo && pr.xo.m === XC.mid ? pr.xo : null, xf = pr.xf && pr.xf.m === XC.mid ? pr.xf : null;
+  let changed = false;
+  const from = xo ? xo.n - xo.o.length / 3 : Infinity;
+  if (xf && xf.n > st.a && (!xo || from > st.a)){
+    const g = decAny(xf.f, 4096);
+    for (let i = 0; i < 4096; i++) if (D.base[i] !== g[i] && ED.own[i] !== 1){ if (ED.grid[i] === D.base[i]) ED.grid[i] = g[i]; D.base[i] = g[i]; ED.own[i] = 2; }
+    st.a = xf.n; changed = true;
+  }
+  if (xo && st.a >= from && st.a < xo.n){
+    for (let j = (st.a - from) * 3; j < xo.o.length; j += 3){ const v = opUnpack(xo.o, j), c = v >> 5, col = v & 31; if (c < 4096){ ED.grid[c] = col; D.base[c] = col; ED.own[c] = 2; } }
+    st.a = xo.n; changed = true;
+  }
+  if (changed) edRender();
+}
+function duoFinal(){
+  const D = XC.ds; if (!D || !NET.named) return;
+  for (let i = 0; i < 4096; i++) if (ED.grid[i] !== D.base[i]){ D.base[i] = ED.grid[i]; D.n++; }
+  NET.named.presence({xo:null, xf:{m:XC.mid, n:D.n + 1, f:encAny(ED.grid)}, xr:XC.mid}).catch(() => {});
+}
+function duoResults(S){
+  const myT = duoTeamOf(S, XC.me), sc = S.res.map(v => v / 10), win = sc[0] === sc[1] ? -1 : sc[0] > sc[1] ? 0 : 1;
+  $('xrLbl').textContent = '2V2 RESULTS'; $('xrTitle').textContent = 'THEME: ' + S.th;
+  const body = $('xrBody'); body.innerHTML = `<div class="xbanner">${win < 0 ? "IT'S A TIE!" : win === myT ? 'YOUR TEAM WINS!' : 'THE OTHER TEAM WINS'}</div><div class="duores"></div><p class="sub" style="text-align:center">The bot judges scored both team drawings out of 10.</p>`;
+  for (let t = 0; t < 2; t++){
+    const d = document.createElement('div'); d.className = 'duocard' + (t === win ? ' win' : '');
+    d.innerHTML = `<div class="lbl">${t === myT ? 'YOUR TEAM' : 'OTHER TEAM'}</div><div class="nm"></div><div class="cv"></div><div class="sc">${sc[t].toFixed(1)} / 10</div><small>“${esc((S.tt || [])[t] || '')}”</small>`;
+    d.querySelector('.nm').textContent = S.tm[t].map(k => xName(S, k)).join(' + ');
+    d.querySelector('.cv').appendChild(smallCanvas(duoCanvas(S, t), 'pico', 256));
+    body.querySelector('.duores').appendChild(d);
+  }
+  if (win === myT){ confetti(140); SFX.fanfare(); } else SFX.land();
+  xAward(win < 0 ? 45 : win === myT ? 60 : 30, win === myT);
+}
+
+// ---------- charades ----------
+const normW = s => String(s || '').toUpperCase().replace(/[^A-Z]/g, '');
+function lev(a, b){ if (Math.abs(a.length - b.length) > 2) return 9; const d = Array.from({length:a.length + 1}, (_, i) => [i]); for (let j = 1; j <= b.length; j++) d[0][j] = j; for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[a.length][b.length]; }
+const obf = (w, k) => btoa(Array.from(w, (c, i) => String.fromCharCode(c.charCodeAt(0) ^ k.charCodeAt(i % k.length))).join(''));
+const deobf = (s, k) => { try { return Array.from(atob(s), (c, i) => String.fromCharCode(c.charCodeAt(0) ^ k.charCodeAt(i % k.length))).join(''); } catch(e){ return ''; } };
+function chaHint(t, now){
+  const el = (now - (t.start || now)) / 1000, w = t.w; let show = 0;
+  if (el > 30 && normW(w).length >= 4) show = 1; if (el > 45 && normW(w).length >= 7) show = 2;
+  return Array.from(w, (c, i) => c === ' ' ? '/' : t.rv.slice(0, show).includes(i) ? c : '_').join(' ');
+}
+function chaFeed(nm, text, type){ XG.feed.push([nm, String(text).slice(0, 40), type]); if (XG.feed.length > 12) XG.feed.shift(); }
+function chaNextTurn(){
+  const G = XG, now = performance.now(), peers = xPeers();
+  G.order = G.order.filter(k => { const p = G.pl.find(q => q.key === k); return p && (p.kind !== 'remote' || peers.some(q => 'p:' + q.peer === k)); });
+  G.ti++;
+  if (G.ti >= G.order.length){ G.ph = 'res'; G.t = null; G.end = now; xPublish(true); return; }
+  const dr = G.order[G.ti], w = nextTheme(BOT_THEMES), p = G.pl.find(q => q.key === dr);
+  const letters = Array.from(w).map((c, i) => c === ' ' ? -1 : i).filter(i => i >= 0).sort(() => Math.random() - .5);
+  G.t = {dr, w, start:0, ok:new Map(), rv:letters, bots:{}, cv:null};
+  if (p.kind === 'bot'){ const art = makeArt(w, p.seed + G.ti * 7919, p.skill); const cnt = new Array(32).fill(0); for (const v of art) cnt[v]++; const bgc = cnt.indexOf(Math.max(...cnt)); G.t.botArt = {art, order:paintOrder(art, bgc), i:0, bg:bgc}; G.t.cv = new Uint8Array(CELLS).fill(7); }
+  G.gs = {}; G.ph = 'intro'; G.end = now + 3500; G.feed = [];
+  xPublish(true);
+}
+function chaGuess(key, txt){
+  const G = XG, t = G.t; if (!t || G.ph !== 'turn' || key === t.dr || t.ok.has(key)) return;
+  const g = normW(txt), w = normW(t.w), nm = (G.pl.find(p => p.key === key) || {}).nm || 'Someone';
+  if (!g) return;
+  if (g === w || g === w + 'S' || g + 'S' === w || g === w.replace(/ES$/, '')){
+    const secs = (performance.now() - t.start) / 1000; t.ok.set(key, secs);
+    const fast = secs < 15; G.sc[key] += fast ? 2 : 1; if (fast) G.sc[t.dr] += 1;
+    chaFeed(nm, `guessed it! +${fast ? 2 : 1}`, 'ok'); xPublish(true); return;
+  }
+  if (w.length >= 4 && lev(g, w) <= 2) chaFeed(nm, 'is close!', 'close');
+  else chaFeed(nm, String(txt).trim().slice(0, 24), 'g');
+}
+function chaCanvasNow(){
+  const t = XG.t; if (!t) return null;
+  if (t.botArt) return t.cv;
+  if (t.dr === XC.me) return ED.grid;
+  const pp = xPeerOf(t.dr), xc = pp && pp.presence && pp.presence.xc;
+  return xc && xc.m === XG.mid && xc.t === XG.ti ? decGrid(xc.e) : null;
+}
+function chaBotPaint(now){
+  const B = XG.t.botArt, cv = XG.t.cv, el = now - XG.t.start;
+  if (B.i === 0 && el > 300){ cv.fill(B.bg); }
+  const want = Math.floor(B.order.length * clamp((el - 600) / 24000, 0, 1));
+  while (B.i < want){ const c = B.order[B.i++]; cv[c] = B.art[c]; }
+}
+function chaBots(now){
+  const G = XG, t = G.t; if (!t.start) return;
+  const el = (now - t.start) / 1000; if (el < 4) return;
+  if (now - (t.lastRec || 0) < 1400) return; t.lastRec = now;
+  const cv = chaCanvasNow(); if (!cv || features(cv).filled < 20) return;
+  const P = recognize(cv), order = ART_MODEL.themes.slice().sort((a, b) => P[b] - P[a]);
+  for (const p of G.pl){
+    if (p.kind !== 'bot' || p.key === t.dr || t.ok.has(p.key)) continue;
+    const b = t.bots[p.key] || (t.bots[p.key] = {next:7 + Math.random() * 7, tried:new Set()});
+    if (el < b.next) continue;
+    b.next = el + 4 + Math.random() * 4;
+    const th = [.7, .55, .42][p.skill] - el / 150;
+    let pick = order.find(x => !b.tried.has(x));
+    if (!pick) continue;
+    if (P[pick] < th){ if (Math.random() < .25) pick = order.slice(0, 5).filter(x => !b.tried.has(x))[Math.floor(Math.random() * 3)]; else continue; }
+    if (!pick) continue;
+    b.tried.add(pick); chaGuess(p.key, pick);
+  }
+}
+function chaSend(){
+  const v = $('chaIn').value.trim(); if (!v) return; $('chaIn').value = '';
+  const S = XC.s; if (!S || S.ph !== 'turn' || S.dr === XC.me || (S.ok || []).includes(XC.me)) return;
+  if (XG && (appMode === 'xhost' || appMode === 'xlocal')){ chaGuess(XC.me, v); return; }
+  XC.gseq++; XC.gl.push([XC.gseq, v.slice(0, 24)]); if (XC.gl.length > 3) XC.gl.shift();
+  if (NET.named) NET.named.presence({xg:{m:XC.mid, t:S.ti, g:XC.gl.slice()}}).catch(() => {});
+}
+$('chaForm').onsubmit = e => { e.preventDefault(); auInit(); chaSend(); };
+function chaEnterTurn(S){
+  const me = S.dr === XC.me;
+  showView('vDraw'); $('vDraw').className = 'view cha' + (me ? '' : ' watch');
+  edStart(prof.pal); ED.enabled = me; $('dDone').hidden = true;
+  XC.gl = []; XC.lastXc = ''; XC.lastXcT = 0; XC.cvSrc = ''; XC.feedKey = ''; XC.statKey = '';
+  $('chaIn').disabled = me; $('chaIn').placeholder = me ? 'Draw it! Everyone else is guessing.' : 'Type your guess';
+  $('chaGo').disabled = me; $('chaIn').value = '';
+  if (me) musicStart(); else { musicStop(); setTimeout(() => { try { if (matchMedia('(pointer:fine)').matches) $('chaIn').focus(); } catch(e){} }, 50); }
+  lastTickSec = -1;
+  if (NET.named) NET.named.presence({xg:null, xc:null}).catch(() => {});
+}
+function chaTurnUi(S){
+  const me = S.dr === XC.me, word = me ? deobf(S.w, S.mid) : '';
+  $('dTheme').textContent = me ? word : S.hint || '';
+  $('dTheme').parentNode.firstChild.textContent = me ? 'DRAW: ' : 'GUESS: ';
+  const got = (S.ok || []).includes(XC.me);
+  if (!me){ $('chaIn').disabled = got; $('chaGo').disabled = got; if (got) $('chaIn').placeholder = 'You got it! Waiting for the others…'; }
+  chaFeedUi(S); chaStatus(S);
+}
+function chaFeedUi(S){
+  const key = JSON.stringify(S.fd); if (key === XC.feedKey) return; XC.feedKey = key;
+  $('chaFeed').innerHTML = (S.fd || []).map(([nm, t, ty]) => `<li class="f-${ty}">${nm ? `<b>${esc(nm)}</b> ` : ''}${esc(t)}</li>`).join('') || '<li class="f-sys">Guesses show up here.</li>';
+  const f = $('chaFeed'); f.scrollTop = f.scrollHeight;
+  const last = (S.fd || [])[S.fd.length - 1]; if (last && last[2] === 'ok') SFX.unlock(); else if (last && last[2] === 'g') SFX.click(500);
+}
+function chaStatus(S){
+  const ok = new Set(S.ok || []);
+  const h = (S.pl || []).slice().sort((a, b) => (S.sc[b] | 0) - (S.sc[a] | 0)).map(k => `<span class="who${ok.has(k) ? ' done' : ''}"${k === S.dr ? ' style="border-left-color:var(--q)"' : ''}>${esc(xName(S, k))} ${S.sc[k] | 0}${k === S.dr ? ' ✏' : ok.has(k) ? ' ✓' : ''}</span>`).join('');
+  if (h !== XC.statKey){ XC.statKey = h; $('dStatus').innerHTML = h; }
+}
+// what guessers see: the drawer's canvas, sent from the drawer's device (or the host's, for a bot drawer)
+function chaWatchTick(now){
+  const S = XC.s; if (!S || S.ph !== 'turn' || S.dr === XC.me) return;
+  let g = null;
+  if (XG && XG.t && (appMode === 'xhost' || appMode === 'xlocal')) g = chaCanvasNow();
+  else { const src = S.dr.startsWith('b:') ? findHost() : xPeerOf(S.dr), xc = src && src.presence && src.presence.xc; if (xc && xc.m === S.mid && xc.t === S.ti && xc.e !== XC.lastXc){ XC.lastXc = xc.e; g = decGrid(xc.e); } }
+  if (g){ ED.grid = g.slice ? g.slice() : g; edRender(); }
+}
+function chaDrawTick(now){
+  const S = XC.s; if (!S || S.ph !== 'turn' || !NET.named) return;
+  const mine = S.dr === XC.me, bot = S.dr.startsWith('b:') && XG && XG.t && XG.t.botArt;
+  if (!mine && !bot) return;
+  if (now - XC.lastXcT < 350) return;
+  const e = encGrid(mine ? ED.grid : XG.t.cv); if (e === XC.lastXc) return;
+  XC.lastXc = e; XC.lastXcT = now; NET.named.presence({xc:{m:S.mid, t:S.ti, e}}).catch(() => {});
+}
+function chaResults(S){
+  $('xrLbl').textContent = 'CHARADES RESULTS'; $('xrTitle').textContent = 'FINAL SCORES';
+  const list = (S.pl || []).slice().sort((a, b) => (S.sc[b] | 0) - (S.sc[a] | 0));
+  const top = S.sc[list[0]] | 0, myPlace = list.indexOf(XC.me) + 1;
+  const tied = list.filter(k => (S.sc[k] | 0) === top).length > 1;
+  $('xrBody').innerHTML = `<div class="xbanner">${tied ? ((S.sc[XC.me] | 0) === top ? "IT'S A TIE FOR FIRST!" : `${list.filter(k => (S.sc[k] | 0) === top).map(k => esc(xName(S, k))).join(' & ')} TIE FOR FIRST!`) : (S.sc[XC.me] | 0) === top ? 'YOU WIN!' : `${esc(xName(S, list[0]))} WINS!`}</div><ol class="ranks xranks">${list.map((k, i) => `<li class="show${k === XC.me ? ' me' : ''}"><span class="pos">#${i + 1}</span><span class="nm">${esc(xName(S, k))}</span><span class="sc">${S.sc[k] | 0} PTS</span></li>`).join('')}</ol>`;
+  if (myPlace === 1){ confetti(140); SFX.fanfare(); } else SFX.land();
+  xAward(20 + (S.sc[XC.me] | 0) * 6, myPlace === 1);
+}
+
+// ---------- shared screen logic ----------
+function xRender(S){
+  if (!S) return;
+  const now = performance.now();
+  if (S.mid !== XC.mid){ XC.mid = S.mid; XC.kind = S.k; XC.ph = ''; XC.ti = -1; XC.resShown = ''; XC.gseq = 0; XC.gl = []; }
+  XC.s = S;
+  const end = now + (+S.rem || 0) * 1000; if (Math.abs(end - XC.endAt) > 1200 || S.ph !== XC.ph) XC.endAt = end;
+  const changed = S.ph !== XC.ph || (S.k === 'cha' && S.ti !== XC.ti);
+  if (S.k === 'duo'){
+    if (S.ph === 'theme' && changed) playReel(S.th, BOT_THEMES);
+    else if (S.ph === 'draw'){ if (changed) duoEnterDraw(S); duoStatus(S); }
+    else if (S.ph === 'collect' && changed){ ED.enabled = false; musicStop(); SFX.end(); duoFinal(); showCollecting(); $('reelSub').textContent = 'Putting the team drawings together…'; }
+    else if (S.ph === 'res' && Array.isArray(S.res) && XC.resShown !== S.mid){ XC.resShown = S.mid; xShowRes(S); }
+  } else {
+    if (S.ph === 'intro' && changed){
+      ED.enabled = false; musicStop(); resTimers.forEach(clearTimeout); clearTimeout(reelTimer);
+      showView('vTheme'); const r = $('reel'); r.classList.remove('land'); void r.offsetWidth; r.classList.add('land');
+      r.textContent = S.dr === XC.me ? 'YOUR TURN!' : UP(xName(S, S.dr)) + ' DRAWS';
+      $('reelSub').textContent = `Turn ${S.ti + 1} of ${S.tn}. ${S.dr === XC.me ? 'Draw the secret word so the others can guess it.' : 'Type your guess as fast as you can.'}`; SFX.land();
+    }
+    else if (S.ph === 'turn'){ if (changed) chaEnterTurn(S); chaTurnUi(S); }
+    else if (S.ph === 'reveal' && changed){
+      ED.enabled = false; musicStop(); showView('vTheme'); const r = $('reel'); r.textContent = S.rw || '???';
+      const got = (S.ok || []).map(k => xName(S, k)); $('reelSub').textContent = got.length ? `${got.join(', ')} got it!` : 'Nobody got it this time.'; SFX.reveal(3);
+    }
+    else if (S.ph === 'res' && XC.resShown !== S.mid){ XC.resShown = S.mid; xShowRes(S); }
+  }
+  XC.ph = S.ph; XC.ti = S.ti;
+}
+function xShowRes(S){
+  ED.enabled = false; musicStop(); showView('vXRes'); $('vXRes').scrollTop = 0;
+  if (S.k === 'duo') duoResults(S); else chaResults(S);
+  const local = appMode === 'xlocal', host = appMode === 'xhost' && !NET.mm;
+  $('xrAgain').hidden = !(local || host); $('xrFind').hidden = !NET.mm; $('xrWait').hidden = !(appMode === 'xclient' && !NET.mm);
+}
+function xAward(gain, win){
+  const before = levelOf(prof.xp); prof.xp += gain; prof.games = (prof.games | 0) + 1; if (win) prof.wins = (prof.wins | 0) + 1; saveProf();
+  const after = levelOf(prof.xp); $('xrLvl').textContent = after.l; $('xrGain').textContent = `+${gain} XP`; $('xrXpBar').style.width = (after.cur / after.need * 100) + '%';
+  if (after.l > before.l) setTimeout(() => SFX.unlock(), 500);
+}
+// runs on every device, every tick
+function xLocalTick(now){
+  const S = XC.s; if (!S) return;
+  if (S.k === 'duo' && S.ph === 'draw') duoSyncTick(now);
+  if (S.k === 'cha'){ chaWatchTick(now); chaDrawTick(now); }
+  if (!$('vDraw').hidden){
+    const left = (XC.endAt - now) / 1000; $('dTimer').textContent = fmt(left); $('dTimer').classList.toggle('hot', left <= 10);
+    const sec = Math.ceil(left); if (sec !== XC.lastSec){ XC.lastSec = sec; if (sec <= 10 && sec > 0) SFX.warn(); }
+  }
+}
+// a client device gets the host's snapshot through the room
+function xFromHost(S, peers){
+  const me = peers.find(p => p.sameTab); if (!me || !S || typeof S !== 'object') return;
+  XC.me = 'p:' + me.peer;
+  if (S.mid !== XC.mid){
+    if (Array.isArray(S.pl) && !S.pl.includes(XC.me)){ if (NET.mm){ mmBounce(); return; } if (XC.busy !== S.mid){ XC.busy = S.mid; toast('A match is going on in this room. You can join the next one.'); } return; }
+    appMode = 'xclient'; if (MM.on) stopQueue(true);
+    NET.named.presence({xo:null, xf:null, xr:0, xg:null, xc:null}).catch(() => {});
+  }
+  if (appMode !== 'xclient') appMode = 'xclient';
+  xRender(S);
+}
+function xQuit(){
+  if (performance.now() - (xQuit.arm || 0) > 2500){ xQuit.arm = performance.now(); toast('Tap ✕ again to leave this match.'); return; }
+  if (NET.named) leaveRoom(); toMenu();
+}
+$('xrMenu').onclick = () => { if (NET.named) leaveRoom(); toMenu(); };
+$('xrAgain').onclick = () => { auInit(); if (appMode === 'xlocal' || !NET.named) xLocal(XC.kind || lastX); else if (appMode === 'xhost') hostStart(); };
+$('xrFind').onclick = () => { auInit(); const k = XC.kind === 'duo' ? 'd' : 'c'; if (NET.named) leaveRoom(); XG = null; showView(null); startQueue(k); };
+document.querySelectorAll('[data-xb]').forEach(b => b.onclick = () => xLocal(b.dataset.xb));
+document.querySelectorAll('[data-xq]').forEach(b => b.onclick = () => { auInit(); startQueue(b.dataset.xq === 'duo' ? 'd' : 'c'); });
 
 // ---------- main tick ----------
 let lastTickSec = -1, lastFrame = performance.now();
@@ -2351,6 +2857,8 @@ function tick(){
     else if (GS.phase === 'vote'){ if (GS.net && hostAllVoted()) GS.end = Math.min(GS.end, now + 900); if (now >= GS.end) nextVote(); }
     if (GS && GS.net) hostSync(false);
   } else if (appMode === 'client'){ if (NET.hostLostAt) hostWatch(); if (NET.phase === 'draw' && ED.enabled) flushMyDrawing(); }
+  if (XG && (appMode === 'xhost' || appMode === 'xlocal')) xHostTick(now);
+  if (xOn()) xLocalTick(now);
   // timers UI
   const end = appMode === 'client' ? NET.endAt : GS ? GS.end : 0;
   const ph = appMode === 'client' ? NET.phase : GS ? GS.phase : '';
@@ -2389,6 +2897,7 @@ new MutationObserver(ms => { for (const m of ms){ if (m.type === 'characterData'
   if (!numRaf) numRaf = requestAnimationFrame(() => { numRaf = 0; const q = [...numQ]; numQ.clear(); for (const el of q) if (el && el.isConnected && !(el.closest && el.closest('.num'))) numWrap(el); }); })
   .observe(document.body, {childList:true, subtree:true, characterData:true});
 numWrap(document.body);
+window.__pbx = {get XG(){ return XG; }, XC, get appMode(){ return appMode; }, get MM(){ return MM; }, encAny, decAny};
 window.__pb = {get GS(){ return GS; }, get NET(){ return NET; }, prof, rankDelta, tierOf, get RES(){ return RES; }, makeArt, judge, judgeRaw, JP, recognize, artFeatures, botVerdict, encGrid, decGrid, get mode(){ return appMode; }, ED, BOT_THEMES};
 window.__pbReady = 1; { const w = document.getElementById('jsWarn'); if (w) w.style.display = 'none'; }
 })();
