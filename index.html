@@ -308,7 +308,7 @@ body{margin:0}
       <button class="mode m-pur" id="bRanked"><b>RANKED</b><span id="rankSub">Real players. Place high to climb the ranks.</span></button>
       <button class="mode m-blue" id="bPrac"><b>PRACTICE</b><span>Solo. The bot judge scores you out of 10.</span></button>
       <button class="mode m-grn" id="bOnline"><b>PRIVATE ROOM</b><span id="onlineSub">Play friends with a code</span></button>
-      <button class="mode big m-teal" id="bModes"><b>OTHER GAMEMODES</b><span>2V2 team drawing and Charades.</span></button>
+      <button class="mode big m-teal" id="bModes"><b>OTHER GAMEMODES</b><span>2V2, Charades and Picasso mode.</span></button>
     </div>
     <div class="tips">
       <div><b>1 THEME</b>A random theme spins up.</div>
@@ -333,6 +333,11 @@ body{margin:0}
       <b>CHARADES</b>
       <span>Up to 8 players take turns drawing a secret word while everyone else types guesses. A new letter of the word shows every 10 seconds. First to guess gets 5 points, then 4, 3, 2, and 1 after that. The drawer gets 1 point for every player who guesses it.</span>
       <div class="row"><button class="btn" data-xq="cha">FIND CHARADES MATCH</button><button class="btn ghost" data-xb="cha">PLAY WITH BOTS</button></div>
+    </div>
+    <div class="xcard">
+      <b>PICASSO MODE</b>
+      <span>8 artists, a big 64×64 canvas and 10 minutes to draw your masterpiece. Then everyone votes, just like a normal battle.</span>
+      <div class="row"><button class="btn" data-xq="pic">FIND PICASSO MATCH</button><button class="btn ghost" data-xb="pic">PLAY WITH BOTS</button></div>
     </div>
     <div class="note">Playing with friends? Start a Private Room and pick the mode there.</div>
   </div>
@@ -595,7 +600,7 @@ function setMute(m){ AU.muted = m; store.set('muted', m); if (AU.m) AU.m.gain.va
 // ---------- art encoding & rendering ----------
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 function encGrid(g){ let bytes = '', acc = 0, bits = 0; for (let i = 0; i < CELLS; i++){ acc = (acc << 5) | (g[i] & 31); bits += 5; while (bits >= 8){ bits -= 8; bytes += String.fromCharCode((acc >> bits) & 255); } acc &= (1 << bits) - 1; } return btoa(bytes); }
-const GAME_V = 5;   // bump when online data changes in a way older copies can't read; versions never share rooms or matchmaking
+const GAME_V = 6;   // bump when online data changes in a way older copies can't read; versions never share rooms or matchmaking
 const roomName = code => 'pixelbattle' + GAME_V + '-' + String(code).toLowerCase();
 function decGrid(s){ const g = new Uint8Array(CELLS); try { const b = atob(String(s || '')); if (b.length <= CELLS / 2){ for (let i = 0; i < CELLS / 2 && i < b.length; i++){ const v = b.charCodeAt(i); g[i * 2] = v >> 4; g[i * 2 + 1] = v & 15; } } else { let acc = 0, bits = 0, k = 0; for (let i = 0; i < b.length && k < CELLS; i++){ acc = (acc << 8) | b.charCodeAt(i); bits += 8; while (bits >= 5 && k < CELLS){ bits -= 5; g[k++] = (acc >> bits) & 31; } acc &= (1 << bits) - 1; } } } catch(e){} return g; }
 function drawGrid(canvas, grid, palId, opts = {}){
@@ -1353,6 +1358,7 @@ function themeMatch(grid, theme){
 }
 const JCACHE = new WeakMap();
 function judgeRaw(grid, theme){
+  if (grid.length === 4096){ const big = grid; const hit0 = JCACHE.get(big); if (hit0 && hit0.key === theme + '|') return hit0.v; const v = judgeRaw(down2(big), theme); JCACHE.set(big, {key:theme + '|', v}); return v; }
   const key = theme + '|', hit = JCACHE.get(grid); if (hit && hit.key === key) return hit.v;
   const f = features(grid);
   let v;
@@ -1567,8 +1573,8 @@ function newGame(o){
   const players = o.humans.map((h, i) => ({key:h.kind === 'remote' ? 'p:' + h.peer : (h.kind === 'local' && o.net ? 'p:' + h.peer : 'h' + i), nm:h.nm, kind:h.kind, slot:h.slot || 0, peer:h.peer || '', grid:null, pal:'pico'}));
   const names = BOT_NAMES.slice().sort(() => Math.random() - .5);
   const bots = [];
-  for (let i = 0; i < o.bots; i++){ const skill = o.skills ? o.skills[i % o.skills.length] : [0, 1, 1, 2, 0][i % 5]; const seed = Math.floor(Math.random() * 1e9); bots.push([names[i], seed, skill]); players.push({key:'b:' + i, nm:names[i], kind:'bot', skill, seed, grid:makeArt(theme, seed, skill), pal:'pico'}); }
-  GS = {mid:Math.random().toString(36).slice(2, 8), theme, time:o.time || 120, net:!!o.net, hot:!!o.hot, ranked:!!o.ranked, players, bots, phase:'theme', end:performance.now() + 4200,
+  for (let i = 0; i < o.bots; i++){ const skill = o.skills ? o.skills[i % o.skills.length] : [0, 1, 1, 2, 0][i % 5]; const seed = Math.floor(Math.random() * 1e9); bots.push([names[i], seed, skill]); players.push({key:'b:' + i, nm:names[i], kind:'bot', skill, seed, grid:artFor(theme, seed, skill, o.big), pal:'pico'}); }
+  GS = {mid:Math.random().toString(36).slice(2, 8), theme, time:o.time || 120, big:!!o.big, net:!!o.net, hot:!!o.hot, ranked:!!o.ranked, players, bots, phase:'theme', end:performance.now() + 4200,
     order:[], vi:0, votes:[], judges:0, results:null, hotQ:[], cur:null, ready:new Set(), lastSync:0, local:o.humans.filter(h => h.kind === 'local').length};
   playReel(theme, o.bots > 0 ? BOT_THEMES : BOT_THEMES.concat(EXTRA_THEMES));
   if (GS.net) hostSync(true);
@@ -1586,7 +1592,7 @@ function nextHot(){
 }
 $('handGo').onclick = () => { auInit(); if (!GS || GS.phase !== 'hand') return; GS.phase = 'draw'; GS.end = performance.now() + GS.time * 1000; openEditor(); };
 function openEditor(){
-  xDrawReset(); showView('vDraw'); $('dTheme').textContent = GS.theme; edStart(prof.pal); renderDrawStatus(); musicStart(); lastTickSec = -1;
+  xDrawReset(); showView('vDraw'); $('dTheme').textContent = GS.theme; edStart(prof.pal, GS.big ? 64 : 32); renderDrawStatus(); musicStart(); lastTickSec = -1;
   $('dDone').textContent = 'DONE'; $('dDone').disabled = false;
 }
 function renderDrawStatus(){
@@ -1628,7 +1634,7 @@ function setVoteMode(){
 function beginVoting(){
   if (GS.net){
     const peers = NET.named ? NET.named.peers() : [];
-    for (const p of GS.players){ if (p.kind === 'remote'){ const pr = peers.find(q => q.peer === p.peer); const dr = pr && pr.presence && pr.presence.dr; if (dr && (dr.e || dr.d)){ p.grid = decGrid(dr.e || dr.d); p.pal = PALS[dr.p] ? dr.p : 'pico'; } } }
+    for (const p of GS.players){ if (p.kind === 'remote'){ const pr = peers.find(q => q.peer === p.peer); const dr = pr && pr.presence && pr.presence.dr; if (dr && (dr.e || dr.d)){ p.grid = decDr(dr); p.pal = PALS[dr.p] ? dr.p : 'pico'; } } }
   }
   // a player who left before drawing anything doesn't get an empty canvas put up for voting
   const here = GS.net && NET.named ? NET.named.peers() : null;
@@ -1745,7 +1751,7 @@ function showRankBox(rk){
 let resTimers = [];
 let RES = {mm:false, guest:false, ranked:false, mid:'', rank:null};
 function showResults(list, theme, hotKeys){
-  RES = {mm:!!NET.mm, guest:appMode === 'client', ranked:!!NET.ranked && !!NET.named, mid:appMode === 'client' ? NET.mid : GS ? GS.mid : '', rank:null};
+  RES = {mm:!!NET.mm, guest:appMode === 'client', ranked:!!NET.ranked && !!NET.named, mid:appMode === 'client' ? NET.mid : GS ? GS.mid : '', rank:null, kind:(appMode === 'client' ? NET.big : GS && GS.big) ? 'p' : NET.ranked ? 'r' : 'q'};
   if (RES.ranked) RES.rank = rankedResult(list);   // settled right away, so nothing that happens during the reveal can change it
   $('rRankBox').hidden = true;
   resTimers.forEach(clearTimeout); resTimers = [];
@@ -1908,7 +1914,11 @@ function showJudge(){
   $('jRate').hidden = false; $('jRate').disabled = false; $('jRate').textContent = 'RATE MY ART';
   $('jAgain').hidden = true; $('jSave').hidden = true; $('jXp').hidden = true;
 }
-function blankCanvas(grid){ const c = new Array(32).fill(0); for (const v of grid) c[v]++; return Math.max(...c) > CELLS - 6; }
+function blankCanvas(grid){ const c = new Array(32).fill(0); for (const v of grid) c[v]++; return Math.max(...c) > grid.length - 6; }
+// Picasso matches use a 64x64 canvas; bots draw at 32 and get scaled up, the judge looks at a 32x32 version
+const artFor = (th, seed, skill, big) => big ? up2(makeArt(th, seed, skill)) : makeArt(th, seed, skill);
+const blankArt = big => new Uint8Array(big ? 4096 : CELLS).fill(7);
+const decDr = dr => dr.n === 64 ? decAny(dr.e, 4096) : decGrid(dr.e || dr.d);
 $('jRate').onclick = async () => {
   if (!pracArt) return; auInit();
   $('jRate').disabled = true;
@@ -2182,14 +2192,15 @@ function renderRoom(){
   const nb = NET.host ? NET.cfg.bots : (+cfg.bots | 0);
   if (nb > 0){ const li = document.createElement('li'); li.innerHTML = '<i style="background:#566c86"></i><span></span><small>BOTS</small>'; li.querySelector('span').textContent = `+ ${nb} bot artist${nb === 1 ? '' : 's'}`; $('roomPlayers').appendChild(li); }
   const mode = cfg.mode || 'classic';
-  if (mode !== 'classic') $('roomMode').textContent = mode === 'duo' ? `2V2 team draw · ${hum.length > 4 ? 'first 4 play' : 'bots fill empty spots'} · 3:00 to draw` : `Charades · up to 8 players · 60s turns`;
+  if (mode === 'pic') $('roomMode').textContent = `Picasso · 64×64 canvas · 10:00 to draw · ${hum.length > 8 ? 'first 8 play' : 'up to 8 artists'}`;
+  else if (mode !== 'classic') $('roomMode').textContent = mode === 'duo' ? `2V2 team draw · ${hum.length > 4 ? 'first 4 play' : 'bots fill empty spots'} · 3:00 to draw` : `Charades · up to 8 players · 60s turns`;
   $('roomMode').textContent += (cfg.vis === 'open' ? ' · anyone can join' : ' · code only');
   $('hostCtl').hidden = !NET.host; $('guestWait').hidden = NET.host;
   if (NET.host){
-    const humans = Math.min(hum.length, NET.cfg.max); NET.cfg.bots = clamp(NET.cfg.bots, 0, NET.cfg.max - humans); $('rbN').textContent = NET.cfg.bots;
+    const cap = mode === 'pic' ? Math.min(8, NET.cfg.max) : NET.cfg.max, humans = Math.min(hum.length, cap); NET.cfg.bots = clamp(NET.cfg.bots, 0, cap - humans); $('rbN').textContent = NET.cfg.bots;
     $('roomVisSel').innerHTML = [['open', 'ANYONE (LISTED)'], ['code', 'CODE ONLY']].map(([k, l]) => `<button data-v="${k}" aria-pressed="${k === (NET.cfg.vis || 'code')}">${l}</button>`).join('');
     $('roomVisSel').querySelectorAll('button').forEach(b => b.onclick = () => { NET.cfg.vis = b.dataset.v; NET.named.presence({cfg:NET.cfg}).catch(() => {}); updateOpenPresence(); SFX.click(); renderRoom(); toast(NET.cfg.vis === 'open' ? 'Your room now shows in Open Rooms, so anyone can join.' : 'Your room is hidden. Only people with the code can join.'); });
-    const MODES = [['classic', 'CLASSIC'], ['duo', '2V2'], ['cha', 'CHARADES']];
+    const MODES = [['classic', 'CLASSIC'], ['duo', '2V2'], ['cha', 'CHARADES'], ['pic', 'PICASSO']];
     $('roomModeSel').innerHTML = MODES.map(([k, l]) => `<button data-m="${k}" aria-pressed="${k === mode}">${l}</button>`).join('');
     $('roomModeSel').querySelectorAll('button').forEach(b => b.onclick = () => { NET.cfg.mode = b.dataset.m; NET.named.presence({cfg:NET.cfg}).catch(() => {}); SFX.click(); renderRoom(); });
     $('roomTime').hidden = $('roomTimeLbl').hidden = mode !== 'classic'; $('rbStep').style.visibility = mode === 'duo' ? 'hidden' : '';
@@ -2225,11 +2236,12 @@ function hostStart(){
     NET.named.presence({dr:null, vt:null}).catch(() => {});
     xStart(mode, humans, nb, true); updateOpenPresence(); return;
   }
-  const hum = roomHumans().slice(0, NET.cfg.max);
+  const hum = roomHumans().slice(0, NET.cfg.mode === 'pic' ? 8 : NET.cfg.max);
   const humans = hum.map((p, i) => ({nm:cleanName(p.presence.nm) || 'Artist ' + (i + 1), kind:p.sameTab ? 'local' : 'remote', peer:p.peer, slot:0}));
   if (humans.length + NET.cfg.bots < 2){ toast('You need at least 2 artists. Add a bot or wait for a friend.'); return; }
   appMode = 'host'; NET.ready = false;
-  newGame({humans, bots:clamp(NET.cfg.bots, 0, NET.cfg.max - humans.length), time:NET.cfg.time, net:true, ranked:NET.ranked});
+  const pic = NET.cfg.mode === 'pic';
+  newGame({humans, bots:clamp(NET.cfg.bots, 0, (pic ? Math.min(8, NET.cfg.max) : NET.cfg.max) - humans.length), time:pic ? 600 : NET.cfg.time, big:pic, net:true, ranked:NET.ranked});
   NET.named.presence({dr:null, vt:null}).catch(() => {});
   updateOpenPresence();
 }
@@ -2249,7 +2261,7 @@ function hostSync(force){
   const now = performance.now();
   if (!force && now - GS.lastSync < 2500) return;
   GS.lastSync = now;
-  const st = {host:1, hg:NET.hg | 0, rk:GS.ranked ? 1 : 0, ph:GS.phase, mid:GS.mid, th:GS.theme, rem:Math.max(0, Math.round((GS.end - now) / 100) / 10), bs:GS.bots, tm:GS.time};
+  const st = {host:1, hg:NET.hg | 0, rk:GS.ranked ? 1 : 0, big:GS.big ? 1 : 0, ph:GS.phase, mid:GS.mid, th:GS.theme, rem:Math.max(0, Math.round((GS.end - now) / 100) / 10), bs:GS.bots, tm:GS.time};
   if (GS.phase === 'vote' || GS.phase === 'res'){ st.ord = GS.order.map(pi => GS.players[pi].key); st.vi = GS.vi; st.vm = GS.botsJudge ? 'bots' : GS.rankMix ? 'ranked' : GS.peopleOnly ? 'people' : 'mix'; }
   if (GS.phase === 'res' && GS.results) st.res = GS.results.map(r => [GS.players[r.pi].key, Math.round(r.avg * 10), r.n]);
   st.rdy = GS.phase === 'draw' ? [...GS.ready] : null;
@@ -2258,11 +2270,11 @@ function hostSync(force){
 }
 function flushMyDrawing(force){
   if (!NET.named || !ED.grid) return;
-  const d = encGrid(ED.grid), now = performance.now();
+  const d = ED.n === 64 ? encFit(ED.grid, appMode === 'host' ? 3000 : 3400) : encGrid(ED.grid), now = performance.now();
   // while drawing, a backup copy goes out every 10s; the finished drawing is sent when time is up or DONE is tapped
   if (!force && (d === NET.lastDr || now - NET.lastDrT < 10000)) return;
   NET.lastDr = d; NET.lastDrT = now;
-  const patch = {dr:{p:ED.pal, e:d, m:appMode === 'host' ? GS.mid : NET.mid}};
+  const patch = {dr:{p:ED.pal, e:d, n:ED.n, m:appMode === 'host' ? GS.mid : NET.mid}};
   if (appMode === 'client') patch.rdy = NET.ready ? NET.mid : 0;
   NET.named.presence(patch).catch(() => {});
 }
@@ -2310,9 +2322,9 @@ function becomeHost(){
   const peers = NET.named.peers(), me = peers.find(p => p.sameTab), myKey = 'p:' + me.peer, now = performance.now(), last = NET.last || {};
   const players = (NET.pk || []).map(k => { const pp = peers.find(p => 'p:' + p.peer === k), c = NET.cache[k], mine = k === myKey;
     return {key:k, nm:(pp && cleanName(pp.presence.nm)) || (c && c.nm) || 'Artist', kind:mine ? 'local' : 'remote', slot:0, peer:k.slice(2), grid:mine ? null : c ? c.grid : null, pal:c ? c.pal : 'pico'}; });
-  (NET.bots || []).forEach((b, i) => { const c = NET.cache['b:' + i]; players.push({key:'b:' + i, nm:cleanName(b[0]) || 'Bot', kind:'bot', skill:clamp(+b[2] | 0, 0, 2), seed:+b[1] >>> 0, grid:c ? c.grid : makeArt(NET.theme, +b[1] >>> 0, clamp(+b[2] | 0, 0, 2)), pal:'pico'}); });
+  (NET.bots || []).forEach((b, i) => { const c = NET.cache['b:' + i]; players.push({key:'b:' + i, nm:cleanName(b[0]) || 'Bot', kind:'bot', skill:clamp(+b[2] | 0, 0, 2), seed:+b[1] >>> 0, grid:c ? c.grid : artFor(NET.theme, +b[1] >>> 0, clamp(+b[2] | 0, 0, 2), NET.big), pal:'pico'}); });
   const my = players.find(p => p.kind === 'local');
-  GS = {mid:NET.mid, theme:NET.theme, time:+last.tm || 120, net:true, hot:false, ranked:!!NET.ranked, players, bots:NET.bots || [], phase:NET.phase, end:now + 1200,
+  GS = {mid:NET.mid, theme:NET.theme, time:+last.tm || 120, big:!!NET.big, net:true, hot:false, ranked:!!NET.ranked, players, bots:NET.bots || [], phase:NET.phase, end:now + 1200,
     order:[], vi:0, votes:[], judges:0, results:null, hotQ:[], cur:null, ready:new Set(), lastSync:0, local:1};
   NET.host = true; appMode = 'host'; NET.hg = (NET.hg | 0) + 1; NET.hostLostAt = 0; NET.cfg = Object.assign({max:8, bots:0, time:120}, NET.hcfg || {});
   if (NET.phase === 'draw'){
@@ -2324,7 +2336,7 @@ function becomeHost(){
     const ord = (Array.isArray(last.ord) ? last.ord : []).map(k => players.findIndex(p => p.key === String(k))).filter(i => i >= 0);
     if (!ord.length){ GS.phase = 'collect'; GS.end = now + 500; }
     else {
-      ord.forEach(i => { if (!players[i].grid) players[i].grid = new Uint8Array(CELLS).fill(7); });
+      ord.forEach(i => { if (!players[i].grid) players[i].grid = blankArt(NET.big); });
       GS.order = ord; setVoteMode(); GS.vi = clamp(NET.vi | 0, 0, ord.length - 1);
       for (const [k, v] of Object.entries(NET.myVotes || {})){ const i = +k; if (GS.votes[i] && players[ord[i]] !== my) GS.votes[i].set(myKey, clamp(Math.round(+v), 1, 10)); }
       GS.end = now + voteSeconds() * 1000; showVote();
@@ -2380,20 +2392,20 @@ function onRoomPeers(ch){
       if (NET.mm){ mmBounce(); return; }
       toast(`That room is full (${(NET.hcfg && NET.hcfg.max) || 12} players).`); leaveRoom(); toMenu(); return;
     }
-    NET.mid = pr.mid; NET.theme = String(pr.th || '').slice(0, 30); noteTheme(NET.theme); NET.bots = Array.isArray(pr.bs) ? pr.bs.slice(0, 12) : []; NET.ready = false; NET.myVotes = {}; NET.phase = ''; NET.vi = -1; NET.resShown = '';
+    NET.mid = pr.mid; NET.big = !!pr.big; NET.theme = String(pr.th || '').slice(0, 30); noteTheme(NET.theme); NET.bots = Array.isArray(pr.bs) ? pr.bs.slice(0, 12) : []; NET.ready = false; NET.myVotes = {}; NET.phase = ''; NET.vi = -1; NET.resShown = '';
     NET.cache = {};
-    NET.bots.forEach((b, i) => { NET.cache['b:' + i] = {grid:makeArt(NET.theme, +b[1] >>> 0, clamp(+b[2] | 0, 0, 2)), pal:'pico', nm:cleanName(b[0]) || 'Bot'}; });
+    NET.bots.forEach((b, i) => { NET.cache['b:' + i] = {grid:artFor(NET.theme, +b[1] >>> 0, clamp(+b[2] | 0, 0, 2), NET.big), pal:'pico', nm:cleanName(b[0]) || 'Bot'}; });
     appMode = 'client'; NET.named.presence({dr:null, vt:null, rdy:0}).catch(() => {});
     if (MM.on) stopQueue();
   }
-  for (const p of ch.peers){ const dr = p.presence && p.presence.dr; if (dr && (dr.e || dr.d) && dr.m === pr.mid) NET.cache['p:' + p.peer] = {grid:decGrid(dr.e || dr.d), pal:PALS[dr.p] ? dr.p : 'pico', nm:cleanName(p.presence.nm) || 'Artist'}; }
+  for (const p of ch.peers){ const dr = p.presence && p.presence.dr; if (dr && (dr.e || dr.d) && dr.m === pr.mid) NET.cache['p:' + p.peer] = {grid:decDr(dr), pal:PALS[dr.p] ? dr.p : 'pico', nm:cleanName(p.presence.nm) || 'Artist'}; }
   const rem = +pr.rem || 0;
   const phaseChanged = pr.ph !== NET.phase;
   if (pr.ph === 'theme'){ if (phaseChanged) playReel(NET.theme, BOT_THEMES.concat(EXTRA_THEMES)); }
   else if (pr.ph === 'draw'){
     const end = now + rem * 1000; if (phaseChanged || Math.abs(end - NET.endAt) > 1500) NET.endAt = end;
     if (phaseChanged && NET.ranked){ const me = ch.peers.find(p => p.sameTab); rankedArm(NET.mid, (NET.pk || []).filter(k => !me || k !== 'p:' + me.peer)); }
-    if (phaseChanged){ xDrawReset(); showView('vDraw'); $('dTheme').textContent = NET.theme; edStart(prof.pal); musicStart(); $('dDone').textContent = 'DONE'; $('dDone').disabled = false; lastTickSec = -1; NET.lastDr = ''; NET.lastDrT = 0; }
+    if (phaseChanged){ xDrawReset(); showView('vDraw'); $('dTheme').textContent = NET.theme; edStart(prof.pal, NET.big ? 64 : 32); musicStart(); $('dDone').textContent = 'DONE'; $('dDone').disabled = false; lastTickSec = -1; NET.lastDr = ''; NET.lastDrT = 0; }
     const rdy = Array.isArray(pr.rdy) ? pr.rdy : [];
     $('dStatus').innerHTML = roomHumans().map(p => `<span class="who${rdy.includes('p:' + p.peer) || (p.presence.rdy === NET.mid) ? ' done' : ''}">${esc(p.sameTab ? 'You' : cleanName(p.presence.nm))}</span>`).join('') + NET.bots.map(b => `<span class="who done">${esc(cleanName(b[0]))} ✓</span>`).join('');
   }
@@ -2405,14 +2417,14 @@ function onRoomPeers(ch){
       NET.vi = vi; if (phaseChanged){ ED.enabled = false; musicStop(); }
       const ref = String(ord[vi] || ''), art = NET.cache[ref];
       const me = ch.peers.find(p => p.sameTab), own = me && ref === 'p:' + me.peer;
-      renderVoteStage({grid:art ? art.grid : new Uint8Array(CELLS).fill(7), pal:art ? art.pal : 'pico', idx:vi, total:ord.length, theme:NET.theme, people:pr.vm ? pr.vm === 'people' : roomHumans().length > 2, bots:pr.vm === 'bots', ranked:pr.vm === 'ranked', rows:[{key:'me', own, val:NET.myVotes[vi]}]});
+      renderVoteStage({grid:art ? art.grid : blankArt(NET.big), pal:art ? art.pal : 'pico', idx:vi, total:ord.length, theme:NET.theme, people:pr.vm ? pr.vm === 'people' : roomHumans().length > 2, bots:pr.vm === 'bots', ranked:pr.vm === 'ranked', rows:[{key:'me', own, val:NET.myVotes[vi]}]});
     }
   }
   else if (pr.ph === 'res' && Array.isArray(pr.res)){
     if (NET.resShown !== NET.mid){
       NET.resShown = NET.mid;
       const me = ch.peers.find(p => p.sameTab);
-      const list = pr.res.slice(0, 16).map(r => { const ref = String(r[0]), art = NET.cache[ref] || {grid:new Uint8Array(CELLS).fill(7), pal:'pico', nm:'Artist'}; return {nm:art.nm, grid:art.grid, pal:art.pal, avg:clamp((+r[1] || 0) / 10, 0, 10), n:+r[2] | 0, mine:!!me && ref === 'p:' + me.peer, key:ref}; });
+      const list = pr.res.slice(0, 16).map(r => { const ref = String(r[0]), art = NET.cache[ref] || {grid:blankArt(NET.big), pal:'pico', nm:'Artist'}; return {nm:art.nm, grid:art.grid, pal:art.pal, avg:clamp((+r[1] || 0) / 10, 0, 10), n:+r[2] | 0, mine:!!me && ref === 'p:' + me.peer, key:ref}; });
       showResults(list, NET.theme, null);
     }
   }
@@ -2428,7 +2440,7 @@ $('bRanked').onclick = () => { auInit(); startQueue(true); };
 function myLobbyPeer(){ const m = NET.lobbyPeers.find(p => p.sameTab); return m ? m.peer : ''; }
 function setLobbyQ(q){ const k = JSON.stringify(q); if (k === MM.lastQ) return; MM.lastQ = k; if (NET.room) NET.room.presence({[qKey()]:q}).catch(() => {}); }
 const mmMax = () => MM.kind === 'd' ? 4 : 8;
-const MM_LBL = {q:'', r:'RANKED ', d:'2V2 ', c:'CHARADES '};
+const MM_LBL = {q:'', r:'RANKED ', d:'2V2 ', c:'CHARADES ', p:'PICASSO '};
 function startQueue(kind){
   if (kind === undefined) kind = MM.kind; else if (kind === true) kind = 'r'; else if (kind === false) kind = 'q';
   if (MM.lastQ && MM.lastQ !== 'null') setLobbyQ(null);
@@ -2447,8 +2459,8 @@ function startQueue(kind){
 }
 function stopQueue(keep){ MM.on = false; clearInterval(MM.timer); if (!keep) setLobbyQ(null); }
 $('qCancel').onclick = () => { stopQueue(); if (NET.named) leaveRoom(); appMode = 'menu'; show('scrMenu'); refreshMenu(); };
-$('qBots').onclick = () => { stopQueue(); if (NET.named) leaveRoom(); if (MM.kind === 'd' || MM.kind === 'c'){ xLocal(MM.kind === 'd' ? 'duo' : 'cha'); return; } startLocal({humans:[meHuman()], bots:7, time:120}); };
-$('rFind').onclick = () => { auInit(); resTimers.forEach(clearTimeout); if (NET.named) leaveRoom(); GS = null; showView(null); startQueue(!!RES.ranked); };
+$('qBots').onclick = () => { stopQueue(); if (NET.named) leaveRoom(); if (MM.kind === 'd' || MM.kind === 'c' || MM.kind === 'p'){ xLocal({d:'duo', c:'cha', p:'pic'}[MM.kind]); return; } startLocal({humans:[meHuman()], bots:7, time:120}); };
+$('rFind').onclick = () => { auInit(); resTimers.forEach(clearTimeout); if (NET.named) leaveRoom(); GS = null; showView(null); startQueue(RES.kind || (RES.ranked ? 'r' : 'q')); };
 const qKey = () => MM.kind + GAME_V;   // separate queues for each mode and each game version
 const qOf = p => { const q = p.presence && p.presence[qKey()]; return q && typeof q.t === 'number' ? q : null; };
 function mmHosts(){ return NET.lobbyPeers.filter(p => { const q = qOf(p); return !p.sameTab && q && typeof q.h === 'string' && !q.g && (q.n | 0) < mmMax() && !MM.bad[q.h]; }).sort((a, b) => (qOf(a).t - qOf(b).t) || (a.peer < b.peer ? -1 : 1)); }
@@ -2467,7 +2479,7 @@ function renderQueue(rem){
   $('scrQueue').querySelector('.loader').classList.toggle('found', found);
   $('qBarWrap').classList.toggle('fill', found);
   if (found){ $('qTitle').textContent = MM_LBL[MM.kind] + 'MATCH FOUND!'; $('qSub').textContent = rem > 0 ? `Loading the battle in ${rem}…` : 'Loading the battle…'; $('qBar').style.width = clamp((12 - rem) / 12 * 100, 6, 100) + '%'; }
-  else { $('qTitle').textContent = MM.ranked ? 'FINDING RANKED MATCH' : MM.kind === 'd' ? 'FINDING 2V2 PLAYERS' : MM.kind === 'c' ? 'FINDING CHARADES PLAYERS' : 'FINDING PLAYERS'; $('qSub').textContent = inRoom ? 'You are in a lobby. Waiting for more artists to join…' : MM.ranked ? `You are ${tierOf(prof.rp).name} with ${prof.rp} RP. Looking for ranked players…` : 'Looking for artists who are online right now.'; $('qBar').style.width = ''; }
+  else { $('qTitle').textContent = MM.ranked ? 'FINDING RANKED MATCH' : MM.kind === 'd' ? 'FINDING 2V2 PLAYERS' : MM.kind === 'c' ? 'FINDING CHARADES PLAYERS' : MM.kind === 'p' ? 'FINDING PICASSO PLAYERS' : 'FINDING PLAYERS'; $('qSub').textContent = inRoom ? 'You are in a lobby. Waiting for more artists to join…' : MM.ranked ? `You are ${tierOf(prof.rp).name} with ${prof.rp} RP. Looking for ranked players…` : 'Looking for artists who are online right now.'; $('qBar').style.width = ''; }
   const names = inRoom ? hum.map(p => ({nm:cleanName(p.presence.nm) || 'Artist', me:p.sameTab, host:p.presence.host === 1, rk:MM.ranked ? tierOf(clamp(p.presence.rp | 0, 0, 9999)).name : ''})) : [{nm:myName(), me:true, rk:MM.ranked ? tierOf(prof.rp).name : ''}];
   const key = JSON.stringify(names);
   if (key !== MM.lastList){ MM.lastList = key;
@@ -2508,7 +2520,7 @@ async function mmTick(){
     renderQueue(rem);
     if (MM.cdEnd && (now >= MM.cdEnd || hum >= mmMax())){
       MM.cdEnd = 0; setLobbyQ({t:MM.t, h:NET.code, n:hum, g:1}); stopQueue(true);
-      NET.cfg = {max:mmMax(), bots:0, time:120, mode:MM.kind === 'd' ? 'duo' : MM.kind === 'c' ? 'cha' : 'classic'}; hostStart();
+      NET.cfg = {max:mmMax(), bots:0, time:120, mode:MM.kind === 'd' ? 'duo' : MM.kind === 'c' ? 'cha' : MM.kind === 'p' ? 'pic' : 'classic'}; hostStart();
     }
   } else {
     const hum = roomHumans(), idx = hum.findIndex(p => p.sameTab);
@@ -2538,12 +2550,23 @@ function encAny(g){
   raw = 'B' + btoa(raw);
   let rle = 'R';
   for (let i = 0; i < g.length && rle.length < raw.length;){ const c = g[i] & 31; let j = i + 1; while (j < g.length && (g[j] & 31) === c) j++; let L = j - i - 1; rle += B64[c]; do { rle += B64[32 + (L & 31)]; L >>= 5; } while (L); i = j; }
-  return rle.length < raw.length ? rle : raw;
+  // most drawings use only a few colors, so each cell can be stored in 1-4 bits instead of 5
+  const used = [...new Set(g)].map(v => v & 31).sort((a, b) => a - b);
+  let best = rle.length < raw.length ? rle : raw;
+  if (used.length <= 16){ const nb = Math.max(1, Math.ceil(Math.log2(used.length))), map = {}; used.forEach((c, i) => map[c] = i);
+    let pk = '', a2 = 0, b2 = 0; for (let i = 0; i < g.length; i++){ a2 = (a2 << nb) | map[g[i] & 31]; b2 += nb; while (b2 >= 8){ b2 -= 8; pk += String.fromCharCode((a2 >> b2) & 255); } a2 &= (1 << b2) - 1; } if (b2) pk += String.fromCharCode((a2 << (8 - b2)) & 255);
+    const pal = 'P' + B64[used.length - 1] + used.map(c => B64[c]).join('') + btoa(pk); if (pal.length < best.length) best = pal; }
+  return best;
 }
+// a 64×64 drawing that is still too big to send goes out at half detail (only very noisy drawings)
+const encFit = (g, max) => { const e = encAny(g); return e.length <= max || g.length !== 4096 ? e : 'H' + encGrid(down2(g)); };
 function decAny(s, n){
   const g = new Uint8Array(n); s = String(s || '');
   try {
     if (s[0] === 'R'){ let k = 0, i = 1; while (i < s.length && k < n){ const c = B64I[s[i++]] & 31; let L = 0, sh = 0; while (i < s.length && B64I[s[i]] >= 32){ L |= (B64I[s[i++]] - 32) << sh; sh += 5; } for (let r = 0; r <= L && k < n; r++) g[k++] = c; } }
+    else if (s[0] === 'H' && n === 4096) return up2(decGrid(s.slice(1)));
+    else if (s[0] === 'P'){ const k = B64I[s[1]] + 1, used = Array.from(s.slice(2, 2 + k), c => B64I[c] & 31), nb = Math.max(1, Math.ceil(Math.log2(k))), b = atob(s.slice(2 + k)); let acc = 0, bits = 0, q = 0;
+      for (let i = 0; i < b.length && q < n; i++){ acc = (acc << 8) | b.charCodeAt(i); bits += 8; while (bits >= nb && q < n){ bits -= nb; g[q++] = used[(acc >> bits) & ((1 << nb) - 1)] || 0; } acc &= (1 << bits) - 1; } }
     else if (s[0] === 'B'){ const b = atob(s.slice(1)); let acc = 0, bits = 0, k = 0; for (let i = 0; i < b.length && k < n; i++){ acc = (acc << 8) | b.charCodeAt(i); bits += 8; while (bits >= 5 && k < n){ bits -= 5; g[k++] = (acc >> bits) & 31; } acc &= (1 << bits) - 1; } }
   } catch(e){}
   return g;
@@ -2580,6 +2603,7 @@ function xStart(kind, humans, nb, net){
   xPublish(true);
 }
 function xLocal(kind){
+  if (kind === 'pic'){ auInit(); if (NET.named) leaveRoom(); startLocal({humans:[meHuman()], bots:7, time:600, big:true}); return; }
   auInit(); if (NET.named) leaveRoom();
   appMode = 'xlocal'; lastX = kind;
   xStart(kind, [{key:'me', nm:myName(), kind:'local'}], kind === 'duo' ? 3 : 5, false);
@@ -3008,7 +3032,7 @@ $('xrRoom').onclick = () => {
 $('xrAgain').onclick = () => { auInit(); if (appMode === 'xlocal' || !NET.named) xLocal(XC.kind || lastX); else if (appMode === 'xhost') hostStart(); };
 $('xrFind').onclick = () => { auInit(); const k = XC.kind === 'duo' ? 'd' : 'c'; if (NET.named) leaveRoom(); XG = null; showView(null); startQueue(k); };
 document.querySelectorAll('[data-xb]').forEach(b => b.onclick = () => xLocal(b.dataset.xb));
-document.querySelectorAll('[data-xq]').forEach(b => b.onclick = () => { auInit(); startQueue(b.dataset.xq === 'duo' ? 'd' : 'c'); });
+document.querySelectorAll('[data-xq]').forEach(b => b.onclick = () => { auInit(); startQueue({duo:'d', cha:'c', pic:'p'}[b.dataset.xq]); });
 
 // ---------- main tick ----------
 let lastTickSec = -1, lastFrame = performance.now();
