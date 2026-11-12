@@ -276,6 +276,7 @@ h2{font-family:var(--display);font-weight:400;font-size:20px;margin:0;line-heigh
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:max(18px, calc(env(safe-area-inset-bottom, 0px) + 12px));z-index:30;background:var(--w);color:var(--k);padding:10px 14px;font:600 17px var(--body);max-width:calc(100% - 32px);text-align:center;box-shadow:4px 4px 0 rgba(0,0,0,.5)}
 @media (max-width:540px){ .tips{grid-template-columns:1fr 1fr} .mode.big b{font-size:15px} .mode b{font-size:12px} .code{font-size:30px} .podium{gap:6px} .pod .place{font-size:13px} }
 @media (prefers-reduced-motion: reduce){ .reel.land{animation:none} .timer.hot{animation:none} }
+.joinmsg{margin-top:8px;font-size:13px;line-height:1.4;color:var(--muted,#94b0c2)}.joinmsg.bad{color:#ff7a7a}
 html{-webkit-text-size-adjust:100%}
 body{margin:0}
 </style>
@@ -388,6 +389,7 @@ body{margin:0}
       <div class="row"><button class="btn" data-host="12">START A ROOM</button></div>
       <div class="lbl" style="margin-top:6px"><label for="codeIn">Join with a code</label></div>
       <div class="row"><input type="text" id="codeIn" maxlength="4" placeholder="ABCD" style="max-width:150px;text-transform:uppercase;letter-spacing:.2em" autocomplete="off"><button class="btn ghost" id="joinBtn">JOIN</button></div>
+      <div class="joinmsg" id="joinMsg" role="status" aria-live="polite" hidden></div>
       <div class="lbl" style="margin-top:6px">Open rooms right now</div>
       <div class="openlist" id="openList"><div class="note">No open rooms yet. Start one and send the code.</div></div>
     </div>
@@ -600,7 +602,7 @@ function setMute(m){ AU.muted = m; store.set('muted', m); if (AU.m) AU.m.gain.va
 // ---------- art encoding & rendering ----------
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 function encGrid(g){ let bytes = '', acc = 0, bits = 0; for (let i = 0; i < CELLS; i++){ acc = (acc << 5) | (g[i] & 31); bits += 5; while (bits >= 8){ bits -= 8; bytes += String.fromCharCode((acc >> bits) & 255); } acc &= (1 << bits) - 1; } return btoa(bytes); }
-const GAME_V = 8;   // bump when online data changes in a way older copies can't read; versions never share rooms or matchmaking
+const GAME_V = 9;   // bump when online data changes in a way older copies can't read; versions never share rooms or matchmaking
 const roomName = code => 'pixelbattle' + GAME_V + '-' + String(code).toLowerCase();
 function decGrid(s){ const g = new Uint8Array(CELLS); try { const b = atob(String(s || '')); if (b.length <= CELLS / 2){ for (let i = 0; i < CELLS / 2 && i < b.length; i++){ const v = b.charCodeAt(i); g[i * 2] = v >> 4; g[i * 2 + 1] = v & 15; } } else { let acc = 0, bits = 0, k = 0; for (let i = 0; i < b.length && k < CELLS; i++){ acc = (acc << 8) | b.charCodeAt(i); bits += 8; while (bits >= 5 && k < CELLS){ bits -= 5; g[k++] = (acc >> bits) & 31; } acc &= (1 << bits) - 1; } } } catch(e){} return g; }
 function drawGrid(canvas, grid, palId, opts = {}){
@@ -1967,7 +1969,7 @@ function recognizeMlp(g){
   }
   const out = {}; ART_MODEL.themes.forEach((t, k) => out[t] = P[k]); return out;
 }
-const JP = {mfloor:.14, c0:2.5};
+const JP = {mfloor:.14, c0:2.5, sure:1.2};
 // how sure it shows the prompt, by where the prompt is in the recognizer's list of guesses (1st, 2nd, ...)
 const MATCH_R = [1, .82, .66, .54, .45, .38, .32];
 const RANK_S = [.92, .78, .64, .52, .42, .34, .28];
@@ -2013,11 +2015,14 @@ function judgeRaw(grid, theme){
     // the score is how well it's drawn (quality net), as long as it really shows the prompt (recognizer):
     // a great drawing of the wrong thing gets about 3-4, a drawing the recognizer half-sees can still get 6-8
     const E = effortOf(f), tm = themeMatch(grid, theme), Q0 = qualityOf(grid), Q = Math.min(10, Q0 + JBONUS * clamp((Q0 - 5) / 2, 0, 1));
-    const mm = tm.rank < 0 ? .75 : Math.max(Math.sqrt(tm.p), MATCH_R[tm.rank] !== undefined ? MATCH_R[tm.rank] : Math.max(.05, MATCH_R[MATCH_R.length - 1] - (tm.rank - MATCH_R.length + 1) * .04));
+    const mr = tm.rank < 0 ? .75 : Math.max(Math.sqrt(tm.p), MATCH_R[tm.rank] !== undefined ? MATCH_R[tm.rank] : Math.max(.05, MATCH_R[MATCH_R.length - 1] - (tm.rank - MATCH_R.length + 1) * .04));
+    const mm = tm.rank < 0 ? mr : Math.max(mr,
+      // only mark a drawing down for showing the wrong thing when the judges are fairly sure what else it is
+      clamp(1 - JP.sure * ((tm.topP || 0) - tm.p), 0, 1));
     const cap = JP.c0 + (10 - JP.c0) * mm;
     let score = Q <= cap ? Q : cap + (Q - cap) * .1;
     // scribbles and random marks that don't look like the prompt at all: a 1
-    if (mm < .4 && Q < 4.5) score = Math.min(score, 1 + (Q - 1) * .3);
+    if (mr < .4 && Q < 4.5) score = Math.min(score, 1 + (Q - 1) * .3);
     // 9s and 10s are for drawings that are close to perfect
     if (score > 7) score = 7 + (score - 7) * .85;
     score = judgeCurve(score);
@@ -2541,8 +2546,8 @@ function renderRanks(){
     return `<li class="${i === me.i ? 'me' : ''}"><i style="background:${col}"></i><div><b style="color:${col}">${nm}</b>${i === me.i ? '<small>You are here</small>' : ''}</div><span>${next ? `${rp}–${next[0] - 1} RP` : `${rp}+ RP`}</span></li>`; }).join('');
   $('tierNote').innerHTML = `YOUR RP: <b class="num" style="color:var(--y)">${prof.rp}</b><br>` + numify(me.hi ? `NEXT RANK: ${TIERS[me.i + 1][1]} at ${me.hi} RP (${me.hi - prof.rp} to go)` : `You're at the top rank!`);
 }
-$('bOnline').onclick = () => { auInit(); renderOnlineAvail(); show('scrOnline'); };
-document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => { show('scrMenu'); refreshMenu(); });
+$('bOnline').onclick = () => { auInit(); renderOnlineAvail(); if (!NET.joining) joinMsg(''); show('scrOnline'); };
+document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => { if (NET.joining){ const c = NET.joining; NET.joining = ''; if (NET.named && !NET.hadHost) leaveRoom(); joinDone(true, c); } show('scrMenu'); refreshMenu(); });
 const TIMES = [[60, '1:00'], [90, '1:30'], [120, '2:00'], [180, '3:00']];
 function seg(el, val, on){ el.innerHTML = TIMES.map(([s, l]) => `<button data-s="${s}" aria-pressed="${s === val}">${l}</button>`).join(''); el.querySelectorAll('button').forEach(b => b.onclick = () => { on(+b.dataset.s); SFX.click(); }); }
 function renderPracSetup(){
@@ -2693,7 +2698,9 @@ function relayJoin(name){
   return new Promise((resolve, reject) => {
     const rn = RELAY_NS + String(name).toLowerCase().replace(/[^a-z0-9-]/g, ''), base = rn + '/p/', dbase = rn + '/d/', myTopic = base + RELAY_ME, myDr = dbase + RELAY_ME;
     // a player's drawing ('dr') is big, so it travels on its own channel and is only re-sent when it changes
-    let mine = {}, alive = true, lastPub = 0, lastAny = 0, lastMain = '', lastDr = '', pubT = 0, settled = false, downT = 0;
+    let mine = {}, alive = true, lastPub = 0, lastAny = 0, lastMain = '', lastDr = '', pubT = 0, settled = false, downT = 0, helloT = 0, lastHello = 0;
+    // someone new showed up: send my state again right away so they see me without waiting for the next heartbeat
+    const hello = () => { if (helloT || !alive) return; helloT = setTimeout(() => { helloT = 0; if (!alive) return; lastHello = Date.now(); publish(true); }, Math.max(150 + Math.random() * 350, 1500 - (Date.now() - lastHello))); };
     const per = RELAYS.map(() => new Map()), drs = RELAYS.map(() => new Map()), listeners = new Set(), lost = new Set();
     let merged = new Map(), snap = [], pend = {joined:[], left:[], updated:[]}, sch = 0;
     const self = () => ({peer:RELAY_ME, presence:mine, isMe:true, sameTab:true, updatedAt:Date.now()});
@@ -2750,6 +2757,7 @@ function relayJoin(name){
           if (!m || typeof m.p !== 'object' || m.p === null || Array.isArray(m.p) || typeof m.s !== 'number') return;
           const age = Date.now() - (+m.t || 0);
           if (retained && age > 120000){ if (age > 600000) c.publish(topic, '', true); return; }   // leftover from a crashed tab
+          if (!retained && !per[i].has(id) && !merged.has(id)) hello();
           per[i].set(id, {p:m.p, s:m.s, at:Date.now()}); rebuild();
         }
       });
@@ -2773,7 +2781,7 @@ function relayJoin(name){
       join: n => relayJoin(n),
       leave: async () => {
         if (!alive) return; alive = false; RELAY_ROOMS.delete(room);
-        clearInterval(beat); clearInterval(sweep); clearTimeout(pubT); clearTimeout(downT); clearTimeout(sch);
+        clearInterval(beat); clearInterval(sweep); clearTimeout(pubT); clearTimeout(downT); clearTimeout(sch); clearTimeout(helloT);
         conns.forEach(c => { c.publish(myTopic, '{"bye":1}', false); c.publish(myTopic, '', true); if (lastDr) c.publish(myDr, '', true); c.close(); });
         listeners.clear(); lost.clear();
       }
@@ -2821,7 +2829,20 @@ function renderOpenRooms(){
 const CODE_CH = 'BCDFGHJKLMNPQRSTVWXZ';
 const genCode = () => Array.from({length:4}, () => CODE_CH[Math.floor(Math.random() * CODE_CH.length)]).join('');
 async function hostRoom(max){ if (!NET.ok){ toast('Can\'t reach the game servers right now.'); return; } const code = genCode(); try { const nr = await NET.room.join(roomName(code)); setupNamed(nr, code, true, max); } catch(e){ toast('Could not open a room right now. Try again in a moment.'); } }
-async function joinRoom(code){ code = String(code || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4); if (code.length !== 4){ toast('Room codes are 4 letters.'); return; } if (Date.now() - (kickedFrom()[code] || 0) < 15 * 60000){ toast('The host removed you from that room, so you can\'t rejoin it right now.'); return; } if (!NET.ok){ toast('Can\'t reach the game servers right now.'); return; } try { const nr = await NET.room.join(roomName(code)); setupNamed(nr, code, false, 8); } catch(e){ toast('Could not join that room. Check the code and try again.'); } }
+// joining by code: stay on this screen saying "Looking for room…" until the host answers, and say so clearly if nobody does
+function joinMsg(t, bad){ const el = $('joinMsg'); if (!el) return; el.hidden = !t; el.textContent = t || ''; el.classList.toggle('bad', !!bad); }
+async function joinRoom(code){
+  code = String(code || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+  if (code.length !== 4){ joinMsg('Room codes are 4 letters, like ABCD.', true); return; }
+  if (Date.now() - (kickedFrom()[code] || 0) < 15 * 60000){ joinMsg('The host removed you from that room, so you can\'t rejoin it right now.', true); return; }
+  if (!NET.ok){ joinMsg('Can\'t reach the game servers right now. Check your internet and try again.', true); return; }
+  if (NET.joining) return;
+  if (NET.named) leaveRoom();
+  NET.joining = code; $('joinBtn').disabled = true; joinMsg(`Looking for room ${code}…`);
+  try { const nr = await NET.room.join(roomName(code)); if (NET.joining !== code){ nr.leave().catch(() => {}); return; } setupNamed(nr, code, false, 8); }
+  catch(e){ NET.joining = ''; $('joinBtn').disabled = false; joinMsg('Couldn\'t reach the game servers. Check your internet and try again.', true); }
+}
+function joinDone(ok, code){ NET.joining = ''; $('joinBtn').disabled = false; if (ok){ joinMsg(''); $('codeIn').value = ''; } else joinMsg(`No room found with code ${code}. Check the code, or ask the host to send it again.`, true); }
 function setupNamed(nr, code, host, max, mm){
   Object.assign(NET, {named:nr, code, host, mid:'', hadHost:false, vWarn:0, rps:{}, pk:null, last:null, hcfg:null, hg:0, hostLostAt:0, hostPeer:'', noPen:false, ranked:!!mm && !!MM.ranked, cache:{}, phase:'', vi:-1, resShown:'', myVotes:{}, mm:!!mm});
   NET.cfg = {max, bots:0, time:120, mode:'classic', vis:'code'}; NET.kicked = new Set(); XC.mid = ''; XC.s = null;
@@ -2829,9 +2850,9 @@ function setupNamed(nr, code, host, max, mm){
   nr.presence(host ? Object.assign(base, {host:1, ph:'room', cfg:NET.cfg, rk:NET.ranked ? 1 : 0}) : base).catch(() => {});
   NET.unsub = nr.onPeers(onRoomPeers, () => { NET.noPen = true; toast('Lost the connection to the room.'); leaveRoom(); toMenu(); });
   if (host) updateOpenPresence();
-  appMode = 'room'; show(mm ? 'scrQueue' : 'scrRoom'); renderRoom();
+  appMode = 'room'; if (mm || host) show(mm ? 'scrQueue' : 'scrRoom'); renderRoom();
   clearTimeout(NET.joinTimer);
-  if (!host) NET.joinTimer = setTimeout(() => { if (!findHost()){ if (NET.mm){ MM.bad[code] = 1; leaveRoom(); return; } toast(`No game found with code ${code}.`); leaveRoom(); appMode = 'menu'; show('scrOnline'); } }, 7000);
+  if (!host) NET.joinTimer = setTimeout(() => { if (!findHost()){ if (NET.mm){ MM.bad[code] = 1; leaveRoom(); return; } leaveRoom(); appMode = 'menu'; show('scrOnline'); joinDone(false, code); } }, 6500);
 }
 // if two players both think they host (one dropped out for a moment and came back), the newest handover wins
 const hostOf = peers => { let best = null; for (const p of peers) if (p.presence && p.presence.host === 1 && !p.sameTab && (!best || (p.presence.hg | 0) > (best.presence.hg | 0))) best = p; return best; };
@@ -2879,7 +2900,8 @@ function kickPlayer(peer, nm){
 }
 const kickedFrom = () => { const k = store.get('kicked', {}); return k && typeof k === 'object' ? k : {}; };
 $('joinBtn').onclick = () => joinRoom($('codeIn').value);
-$('codeIn').addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom($('codeIn').value); });
+$('codeIn').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); joinRoom($('codeIn').value); } });
+$('codeIn').addEventListener('input', () => { if (!NET.joining) joinMsg(''); });
 $('leaveRoom').onclick = () => { leaveRoom(); appMode = 'menu'; show('scrOnline'); };
 $('copyCode').onclick = () => { const s = `Art battle! Go to pixelbattlegame.github.io, tap Private Room and enter code ${NET.code}.`; try { navigator.clipboard.writeText(s).then(() => toast('Invite copied. Send it to your friends.'), () => toast(`Your code is ${NET.code}`)); } catch(e){ toast(`Your code is ${NET.code}`); } };
 $('roomGo').onclick = () => hostStart();
@@ -2908,6 +2930,7 @@ function leaveRoom(){
   if (prof.rpend && !NET.noPen) rankedLeave();   // walking out of a ranked match counts as last place
   NET.noPen = false; NET.ranked = false; NET.hostLostAt = 0;
   clearTimeout(NET.joinTimer); NET.mm = false;
+  if (NET.joining){ NET.joining = ''; const jb = $('joinBtn'); if (jb) jb.disabled = false; }
   if (NET.named){ try { NET.unsub && NET.unsub(); } catch(e){} NET.named.leave().catch(() => {}); }
   NET.named = null; NET.host = false; NET.mid = '';
   if (NET.room) NET.room.presence({open:null}).catch(() => {});
@@ -3041,6 +3064,7 @@ function onRoomPeers(ch){
   if (NET.hostPeer && NET.hostPeer !== h.peer && appMode === 'client' && LIVE.includes(NET.phase)) toast('The host left, so the match moved to another player. Keep going!');
   NET.hostLostAt = 0; NET.hostPeer = h.peer; NET.hg = h.presence.hg | 0;
   NET.hadHost = true; clearTimeout(NET.joinTimer);
+  if (NET.joining && !NET.host && !NET.mm && appMode === 'room'){ joinDone(true); show('scrRoom'); renderRoom(); }
   const pr = h.presence, now = performance.now();
   NET.last = pr; if (Array.isArray(pr.pk)) NET.pk = pr.pk.slice(0, 12).map(String); if (pr.cfg) NET.hcfg = pr.cfg;
   if (pr.ph === 'x' && pr.x){ xFromHost(pr.x, ch.peers); NET.phase = 'x'; return; }
