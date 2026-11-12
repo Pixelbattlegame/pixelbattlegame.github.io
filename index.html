@@ -330,7 +330,7 @@ body{margin:0}
     </div>
     <div class="xcard">
       <b>CHARADES</b>
-      <span>Up to 8 players take turns drawing a secret word while everyone else types guesses. A new letter of the word shows every 10 seconds. First to guess gets 5 points, then 4, 3, 2, and 1 after that. The drawer gets 1 point for every player who guesses it in under 15 seconds.</span>
+      <span>Up to 8 players take turns drawing a secret word while everyone else types guesses. A new letter of the word shows every 10 seconds. First to guess gets 5 points, then 4, 3, 2, and 1 after that. The drawer gets 1 point for every player who guesses it.</span>
       <div class="row"><button class="btn" data-xq="cha">FIND CHARADES MATCH</button><button class="btn ghost" data-xb="cha">PLAY WITH BOTS</button></div>
     </div>
     <div class="note">Playing with friends? Start a Private Room and pick the mode there.</div>
@@ -2806,7 +2806,7 @@ function chaGuess(key, txt){
   if (g === w || g === w + 'S' || g + 'S' === w || g === w.replace(/ES$/, '')){
     const secs = (performance.now() - t.start) / 1000, place = t.ok.size; t.ok.set(key, secs);
     // first to guess gets 5, then 4, 3, 2, and 1 for everyone after that
-    const pts = Math.max(1, 5 - place); G.sc[key] += pts; if (secs < 15) G.sc[t.dr] += 1;
+    const pts = Math.max(1, 5 - place); G.sc[key] += pts; G.sc[t.dr] += 1;   // the drawer gets 1 point for everyone who guesses it
     chaFeed(nm, `guessed it ${['1st', '2nd', '3rd'][place] || (place + 1) + 'th'}! +${pts}`, 'ok'); xPublish(true); return;
   }
   if (w.length >= 4 && lev(g, w) <= 2) chaFeed(nm, 'is close!', 'close');
