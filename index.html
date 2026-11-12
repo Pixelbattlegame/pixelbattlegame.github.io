@@ -117,6 +117,7 @@ input[type=text]{width:100%;min-width:0;background:var(--e);border:4px solid var
 .xranks li{grid-template-columns:42px minmax(0,1fr) auto}
 .xranks li.me{outline:3px solid var(--y)}
 @media (max-width:540px){ .duores{gap:6px} .duocard{padding:6px} .xbanner{font-size:14px} }
+.plist .kick{margin-left:8px;border:0;background:var(--r);color:var(--w);font:400 8px var(--display);padding:5px 7px;box-shadow:inset -2px -2px 0 rgba(0,0,0,.3)}
 .m-teal{--bg:#38b7a8;--fg:var(--k)}
 .m-pur{--bg:#c58bff;--fg:var(--k)}
 .rk{font-family:var(--display)}
@@ -397,6 +398,8 @@ body{margin:0}
     <div class="lbl">Artists</div>
     <ul class="plist" id="roomPlayers"></ul>
     <div id="hostCtl" class="opt">
+      <div class="lbl">Who can join</div>
+      <div class="seg" id="roomVisSel"></div>
       <div class="lbl">Mode</div>
       <div class="seg" id="roomModeSel"></div>
       <div class="lbl" id="roomTimeLbl">Drawing time</div>
@@ -2144,15 +2147,15 @@ function renderOpenRooms(){
   const list = NET.lobbyPeers.filter(p => !p.isMe && p.presence && p.presence.open && typeof p.presence.open.c === 'string' && p.presence.open.v === GAME_V);
   if (!list.length){ $('openList').innerHTML = '<div class="note">No open rooms yet. Start one and send the code.</div>'; return; }
   $('openList').innerHTML = '';
-  list.slice(0, 8).forEach(p => { const o = p.presence.open, b = document.createElement('button'); b.className = 'optbtn'; b.innerHTML = '<div><b></b><span></span></div><span class="pill"></span>'; b.querySelector('b').textContent = `${UP(cleanName(p.presence.nm) || 'Someone')}'S ROOM`; b.querySelector('div span').textContent = `Code ${String(o.c).slice(0, 4).toUpperCase()} · ${o.g ? 'battle in progress' : 'waiting to start'}`; b.querySelector('.pill').textContent = `${clamp(o.n | 0, 1, 8)}/${clamp(o.m | 0, 2, 8)}`; b.onclick = () => joinRoom(String(o.c)); $('openList').appendChild(b); });
+  list.slice(0, 8).forEach(p => { const o = p.presence.open, b = document.createElement('button'); b.className = 'optbtn'; b.innerHTML = '<div><b></b><span></span></div><span class="pill"></span>'; b.querySelector('b').textContent = `${UP(cleanName(p.presence.nm) || 'Someone')}'S ROOM`; b.querySelector('div span').textContent = `Code ${String(o.c).slice(0, 4).toUpperCase()} · ${o.g ? 'battle in progress' : 'waiting to start'}`; b.querySelector('.pill').textContent = `${clamp(o.n | 0, 1, 12)}/${clamp(o.m | 0, 2, 12)}`; b.onclick = () => joinRoom(String(o.c)); $('openList').appendChild(b); });
 }
 const CODE_CH = 'BCDFGHJKLMNPQRSTVWXZ';
 const genCode = () => Array.from({length:4}, () => CODE_CH[Math.floor(Math.random() * CODE_CH.length)]).join('');
 async function hostRoom(max){ if (!NET.ok){ toast('Can\'t reach the game servers right now.'); return; } const code = genCode(); try { const nr = await NET.room.join(roomName(code)); setupNamed(nr, code, true, max); } catch(e){ toast('Could not open a room right now. Try again in a moment.'); } }
-async function joinRoom(code){ code = String(code || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4); if (code.length !== 4){ toast('Room codes are 4 letters.'); return; } if (!NET.ok){ toast('Can\'t reach the game servers right now.'); return; } try { const nr = await NET.room.join(roomName(code)); setupNamed(nr, code, false, 8); } catch(e){ toast('Could not join that room. Check the code and try again.'); } }
+async function joinRoom(code){ code = String(code || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4); if (code.length !== 4){ toast('Room codes are 4 letters.'); return; } if (Date.now() - (kickedFrom()[code] || 0) < 15 * 60000){ toast('The host removed you from that room, so you can\'t rejoin it right now.'); return; } if (!NET.ok){ toast('Can\'t reach the game servers right now.'); return; } try { const nr = await NET.room.join(roomName(code)); setupNamed(nr, code, false, 8); } catch(e){ toast('Could not join that room. Check the code and try again.'); } }
 function setupNamed(nr, code, host, max, mm){
   Object.assign(NET, {named:nr, code, host, mid:'', hadHost:false, vWarn:0, rps:{}, pk:null, last:null, hcfg:null, hg:0, hostLostAt:0, hostPeer:'', noPen:false, ranked:!!mm && !!MM.ranked, cache:{}, phase:'', vi:-1, resShown:'', myVotes:{}, mm:!!mm});
-  NET.cfg = {max, bots:0, time:120, mode:'classic'}; XC.mid = ''; XC.s = null;
+  NET.cfg = {max, bots:0, time:120, mode:'classic', vis:'code'}; NET.kicked = new Set(); XC.mid = ''; XC.s = null;
   const base = {nm:myName(), j:Date.now(), v:GAME_V, rp:prof.rp | 0, rt:myRt()};
   nr.presence(host ? Object.assign(base, {host:1, ph:'room', cfg:NET.cfg, rk:NET.ranked ? 1 : 0}) : base).catch(() => {});
   NET.unsub = nr.onPeers(onRoomPeers, () => { NET.noPen = true; toast('Lost the connection to the room.'); leaveRoom(); toMenu(); });
@@ -2164,22 +2167,28 @@ function setupNamed(nr, code, host, max, mm){
 // if two players both think they host (one dropped out for a moment and came back), the newest handover wins
 const hostOf = peers => { let best = null; for (const p of peers) if (p.presence && p.presence.host === 1 && !p.sameTab && (!best || (p.presence.hg | 0) > (best.presence.hg | 0))) best = p; return best; };
 function findHost(){ return NET.named ? hostOf(NET.named.peers()) : null; }
-function roomHumans(){ return NET.named ? NET.named.peers().filter(p => p.presence && typeof p.presence.nm === 'string').sort((a, b) => (+a.presence.j || 0) - (+b.presence.j || 0)) : []; }
-function updateOpenPresence(){ if (!NET.room || !NET.host || !NET.named || NET.mm) return; NET.room.presence({open:{c:NET.code, n:clamp(roomHumans().length, 1, NET.cfg.max), m:NET.cfg.max, g:appMode === 'host' || appMode === 'xhost' ? 1 : 0, v:GAME_V}}).catch(() => {}); }
+function kickList(){ if (NET.host) return NET.kicked || new Set(); const h = findHost(); return new Set(h && Array.isArray(h.presence.kick) ? h.presence.kick.map(String) : []); }
+function roomHumans(){ const k = kickList(); return NET.named ? NET.named.peers().filter(p => p.presence && typeof p.presence.nm === 'string' && !k.has(p.peer)).sort((a, b) => (+a.presence.j || 0) - (+b.presence.j || 0)) : []; }
+function updateOpenPresence(){ if (!NET.room || !NET.host || !NET.named || NET.mm) return; if (NET.cfg.vis !== 'open'){ NET.room.presence({open:null}).catch(() => {}); return; } NET.room.presence({open:{c:NET.code, n:clamp(roomHumans().length, 1, NET.cfg.max), m:NET.cfg.max, g:appMode === 'host' || appMode === 'xhost' ? 1 : 0, v:GAME_V}}).catch(() => {}); }
 function renderRoom(){
   if (!NET.named) return;
   $('roomCode').textContent = NET.code;
   const h = NET.host ? null : findHost(), cfg = NET.host ? NET.cfg : (h && h.presence.cfg) || NET.cfg;
   const hum = roomHumans();
   $('roomMode').textContent = (cfg.max === 2 ? 'Duel room · 2 artists' : `Party room · up to ${cfg.max}`) + ` · ${fmt(cfg.time || 120)} to draw · ${hum.length > 2 ? 'players judge each other' : hum.length === 2 || hum.length + (NET.host ? NET.cfg.bots : (+cfg.bots | 0)) === 2 ? '1v1: bot judges pick the winner' : 'bot judges help score'}`; $('roomPlayers').innerHTML = '';
-  hum.forEach((p, i) => { const li = document.createElement('li'); li.innerHTML = '<i></i><span></span><small></small>'; li.querySelector('i').style.background = ['#ff77a8', '#41a6f6', '#ffcd75', '#a7f070', '#73eff7', '#ef7d57', '#c58bff', '#f4f4f4'][i % 8]; li.querySelector('span').textContent = cleanName(p.presence.nm) || 'Someone'; li.querySelector('small').textContent = [p.presence.host === 1 ? 'HOST' : '', p.sameTab ? 'YOU' : '', i >= cfg.max ? 'NEXT GAME' : ''].filter(Boolean).join(' · '); $('roomPlayers').appendChild(li); });
+  hum.forEach((p, i) => { const li = document.createElement('li'); li.innerHTML = '<i></i><span></span><small></small>'; li.querySelector('i').style.background = ['#ff77a8', '#41a6f6', '#ffcd75', '#a7f070', '#73eff7', '#ef7d57', '#c58bff', '#f4f4f4'][i % 8]; li.querySelector('span').textContent = cleanName(p.presence.nm) || 'Someone'; li.querySelector('small').textContent = [p.presence.host === 1 ? 'HOST' : '', p.sameTab ? 'YOU' : '', i >= cfg.max ? 'NEXT GAME' : ''].filter(Boolean).join(' · ');
+    if (NET.host && !p.sameTab){ const k = document.createElement('button'); k.className = 'kick'; k.textContent = 'KICK'; k.setAttribute('aria-label', 'Kick ' + (cleanName(p.presence.nm) || 'this player')); k.onclick = () => kickPlayer(p.peer, cleanName(p.presence.nm) || 'That player'); li.appendChild(k); }
+    $('roomPlayers').appendChild(li); });
   const nb = NET.host ? NET.cfg.bots : (+cfg.bots | 0);
   if (nb > 0){ const li = document.createElement('li'); li.innerHTML = '<i style="background:#566c86"></i><span></span><small>BOTS</small>'; li.querySelector('span').textContent = `+ ${nb} bot artist${nb === 1 ? '' : 's'}`; $('roomPlayers').appendChild(li); }
   const mode = cfg.mode || 'classic';
   if (mode !== 'classic') $('roomMode').textContent = mode === 'duo' ? `2V2 team draw · ${hum.length > 4 ? 'first 4 play' : 'bots fill empty spots'} · 3:00 to draw` : `Charades · up to 8 players · 60s turns`;
+  $('roomMode').textContent += (cfg.vis === 'open' ? ' · anyone can join' : ' · code only');
   $('hostCtl').hidden = !NET.host; $('guestWait').hidden = NET.host;
   if (NET.host){
     const humans = Math.min(hum.length, NET.cfg.max); NET.cfg.bots = clamp(NET.cfg.bots, 0, NET.cfg.max - humans); $('rbN').textContent = NET.cfg.bots;
+    $('roomVisSel').innerHTML = [['open', 'ANYONE (LISTED)'], ['code', 'CODE ONLY']].map(([k, l]) => `<button data-v="${k}" aria-pressed="${k === (NET.cfg.vis || 'code')}">${l}</button>`).join('');
+    $('roomVisSel').querySelectorAll('button').forEach(b => b.onclick = () => { NET.cfg.vis = b.dataset.v; NET.named.presence({cfg:NET.cfg}).catch(() => {}); updateOpenPresence(); SFX.click(); renderRoom(); toast(NET.cfg.vis === 'open' ? 'Your room now shows in Open Rooms, so anyone can join.' : 'Your room is hidden. Only people with the code can join.'); });
     const MODES = [['classic', 'CLASSIC'], ['duo', '2V2'], ['cha', 'CHARADES']];
     $('roomModeSel').innerHTML = MODES.map(([k, l]) => `<button data-m="${k}" aria-pressed="${k === mode}">${l}</button>`).join('');
     $('roomModeSel').querySelectorAll('button').forEach(b => b.onclick = () => { NET.cfg.mode = b.dataset.m; NET.named.presence({cfg:NET.cfg}).catch(() => {}); SFX.click(); renderRoom(); });
@@ -2191,6 +2200,14 @@ function renderRoom(){
 $('rbMinus').onclick = () => { NET.cfg.bots--; renderRoom(); NET.named && NET.named.presence({cfg:NET.cfg}).catch(() => {}); };
 $('rbPlus').onclick = () => { NET.cfg.bots++; renderRoom(); NET.named && NET.named.presence({cfg:NET.cfg}).catch(() => {}); };
 document.querySelectorAll('[data-host]').forEach(b => b.onclick = () => hostRoom(+b.dataset.host));
+// the host can remove someone from the room; they can't rejoin it for 15 minutes
+function kickPlayer(peer, nm){
+  if (!NET.host || !NET.named) return;
+  if (kickPlayer.arm !== peer || performance.now() - kickPlayer.at > 3000){ kickPlayer.arm = peer; kickPlayer.at = performance.now(); toast(`Tap KICK again to remove ${nm}.`); return; }
+  kickPlayer.arm = null; NET.kicked.add(String(peer));
+  NET.named.presence({kick:[...NET.kicked].slice(-30)}).catch(() => {}); updateOpenPresence(); SFX.click(300); renderRoom(); toast(`${nm} was removed from the room.`);
+}
+const kickedFrom = () => { const k = store.get('kicked', {}); return k && typeof k === 'object' ? k : {}; };
 $('joinBtn').onclick = () => joinRoom($('codeIn').value);
 $('codeIn').addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom($('codeIn').value); });
 $('leaveRoom').onclick = () => { leaveRoom(); appMode = 'menu'; show('scrOnline'); };
@@ -2320,6 +2337,11 @@ function onRoomPeers(ch){
   checkVersions(ch.peers);
   if (!NET.named) return;
   for (const p of ch.peers) if (p.presence && typeof p.presence.rp === 'number') NET.rps['p:' + p.peer] = clamp(p.presence.rp | 0, 0, 9999);
+  if (!NET.host && !NET.mm){ const h = hostOf(ch.peers), me = ch.peers.find(p => p.sameTab);
+    if (h && me && Array.isArray(h.presence.kick) && h.presence.kick.map(String).includes(String(me.peer))){
+      const k = kickedFrom(); k[NET.code] = Date.now(); store.set('kicked', k);
+      NET.noPen = true; leaveRoom(); toMenu(); toast('The host removed you from the room.'); return;
+    } }
   if (NET.host && GS && GS.net && appMode === 'host'){
     const rival = hostOf(ch.peers), me = ch.peers.find(p => p.sameTab);
     if (rival && me && rival.presence.mid === GS.mid && ((rival.presence.hg | 0) > (NET.hg | 0) || ((rival.presence.hg | 0) === (NET.hg | 0) && rival.peer < me.peer))){
