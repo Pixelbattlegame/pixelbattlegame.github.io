@@ -2484,7 +2484,7 @@ $('rCritic').onclick = async () => {
   $('rCritic').disabled = true;
   try {
     const blob = await gridToBlob(lastMine.grid, lastMine.pal, 256);
-    const out = await SAMPLE.json(`You are a fun art critic in a pixel art party game played by teens. The theme was "${lastThemeRes}". The attached image is a 32x32 pixel drawing made in a short time limit. Judge how well it fits the theme and how good it looks, kindly but honestly. Reply with JSON only: {"score": integer 1-10, "title": "a funny 2-5 word title for the piece", "comment": "one or two short playful sentences about specific things you see"}`, {images:[blob], modelTier:'quick'});
+    const out = await SAMPLE.json(`You are a fun art critic in a pixel art party game played by teens. The theme was "${lastThemeRes}". The attached image is a ${sizeTxt(lastMine.grid)} pixel drawing made in a time limit. Score how well it fits the theme and how well it's drawn. ${AI_SCALE} Be honest, and playful in the comment. Reply with JSON only: {"score": integer 1-10, "title": "a funny 2-5 word title for the piece", "comment": "one or two short playful sentences about specific things you see"}`, {images:[blob], modelTier:'quick'});
     const sc = clamp(Math.round(+out.score || 5), 1, 10);
     box.innerHTML = '<div class="critic"><b></b><span style="font:400 20px var(--display);color:var(--y)"></span><span></span></div>';
     box.querySelector('b').textContent = `AI CRITIC: “${String(out.title || 'Untitled').slice(0, 40)}”`;
@@ -2560,6 +2560,9 @@ function startPractice(){
   playReel(theme, pool);
 }
 let pracArt = null;
+// the same 1-10 scale the bot judges use, for when Claude judges a drawing
+const AI_SCALE = 'Use this scale strictly: 1 = scribbles or a blank canvas; 2 = a deformed drawing; 3 = slightly better formed, maybe better colors; 4 = still bad but decent; 5 = they made the thing with the right colors but it looks ugly; 6 = slightly better than that; 7 = it actually looks like the thing but could be better; 8 = it looks really good; 9 = almost perfect; 10 = beautifully drawn with an amazing background and the object as good as or better than asked for. Most quick drawings land between 4 and 7. A drawing of the wrong thing gets 3 or less however nice it is.';
+const sizeTxt = g => g.length === 4096 ? '64x64' : '32x32';
 function showJudge(){
   const me = GS.players[0]; pracArt = {grid:me.grid, pal:me.pal, theme:GS.theme};
   GS.phase = 'judge'; showView('vJudge');
@@ -2584,7 +2587,7 @@ $('jRate').onclick = async () => {
     $('jHead').textContent = 'AI JUDGE'; $('jText').textContent = 'Squinting at your pixels…'; SFX.roll();
     try {
       const blob = await gridToBlob(pracArt.grid, pracArt.pal, 256);
-      const out = await SAMPLE.json(`You are the judge in a pixel art game played by teens. The theme was "${pracArt.theme}". The attached image is a 32x32 pixel drawing made against a timer. Score it from 1 to 10: how clearly it shows the theme, plus how good it looks (colors, shapes, effort). Be fair: a quick scribble is 1-3, a recognizable drawing is 5-7, a clean detailed drawing that nails the theme is 8-10. Be kind but honest, and playful. Reply with JSON only: {"score": integer 1-10, "title": "a funny 2-5 word title for the piece", "comment": "one or two short sentences about specific things you see, with one tip to improve"}`, {images:[blob], modelTier:'quick'});
+      const out = await SAMPLE.json(`You are the judge in a pixel art game played by teens. The theme was "${pracArt.theme}". The attached image is a ${sizeTxt(pracArt.grid)} pixel drawing made against a timer. Score it from 1 to 10 for how clearly it shows the theme and how well it's drawn. ${AI_SCALE} Be honest, and playful in the comment. Reply with JSON only: {"score": integer 1-10, "title": "a funny 2-5 word title for the piece", "comment": "one or two short sentences about specific things you see, with one tip to improve"}`, {images:[blob], modelTier:'quick'});
       score = clamp(Math.round(+out.score || 5), 1, 10); title = String(out.title || 'Untitled').slice(0, 48); comment = String(out.comment || '').slice(0, 280); ai = true;
     } catch(e){
       if (e && e.code === 'rate_limited'){ $('jText').textContent = 'The AI judge is busy. Tap again in a moment.'; $('jRate').disabled = false; $('jRate').textContent = 'TRY AGAIN'; return; }
