@@ -469,7 +469,7 @@ body{margin:0}
   <div class="resbox" style="max-width:560px;justify-self:center;align-content:start">
     <header class="topbar"><div><div class="lbl">Practice</div><h2 id="jTitle">THEME: PIZZA</h2></div></header>
     <div class="frame" style="justify-self:center;width:min(100%, 420px, calc(100dvh - 380px));min-width:220px"><canvas id="jc" class="px" width="512" height="512" aria-label="Your drawing"></canvas></div>
-    <div class="critic" id="jBox"><b id="jHead">TIME'S UP!</b><span id="jScore" style="font:400 28px var(--display);color:var(--y)"></span><span id="jText">Ready for the AI judge?</span></div>
+    <div class="critic" id="jBox"><b id="jHead">TIME'S UP!</b><span id="jScore" style="font:400 28px var(--display);color:var(--y)"></span><span id="jText" style="white-space:pre-line">Ready for the AI judge?</span></div>
     <div class="opt" id="jXp" hidden><div class="lvl">LV <span id="jLvl">1</span><div class="xpbar"><i id="jXpBar"></i></div><span id="jGain" style="color:var(--l)"></span></div><div id="jUnlock"></div></div>
     <div class="row end">
       <button class="btn ghost" id="jMenu">MENU</button>
@@ -2018,7 +2018,8 @@ function judgeRaw(grid, theme){
     const mr = tm.rank < 0 ? .75 : Math.max(Math.sqrt(tm.p), MATCH_R[tm.rank] !== undefined ? MATCH_R[tm.rank] : Math.max(.05, MATCH_R[MATCH_R.length - 1] - (tm.rank - MATCH_R.length + 1) * .04));
     const mm = tm.rank < 0 ? mr : Math.max(mr,
       // only mark a drawing down for showing the wrong thing when the judges are fairly sure what else it is
-      clamp(1 - JP.sure * ((tm.topP || 0) - tm.p), 0, 1));
+      // (and never when the prompt is way down the list compared with its first guess)
+      clamp(1 - JP.sure * ((tm.topP || 0) - tm.p), 0, 1) * Math.sqrt(clamp(3 * tm.p / Math.max(tm.topP || 0, 1e-6), 0, 1)));
     const cap = JP.c0 + (10 - JP.c0) * mm;
     let score = Q <= cap ? Q : cap + (Q - cap) * .1;
     // scribbles and random marks that don't look like the prompt at all: a 1
@@ -2043,26 +2044,36 @@ function judge(grid, R, theme){
   return clamp(Math.round(score + mood), 1, 10);
 }
 // short verdict for Practice when the AI judge isn't available
+// practice feedback: how accurately it shows the prompt, as a percentage, and what to work on next time
+function accuracyOf(grid, theme){
+  const {f, M, Q} = judgeRaw(grid, theme);
+  if (f.filled < 30) return 0;
+  const a = .5 * (M || 0) + .5 * (Q - 1) / 9;
+  return Math.round(100 * clamp(a * (Q < 3 ? ((Q - 1) / 2) ** 2 : 1), 0, 1));
+}
 function botVerdict(grid, theme, score){
-  const {tm, f, E, Q} = judgeRaw(grid, theme);
-  const nice = t => t.charAt(0) + t.slice(1).toLowerCase();
-  let seen;
-  if (f.filled < 30) seen = "There's barely anything on the canvas yet.";
-  else if (tm.rank === 0) seen = `I could tell it was ${/^[AEIOU]/.test(theme) ? 'an' : 'a'} ${nice(theme)} right away (${Math.round(tm.p * 100)}% sure).`;
-  else if (tm.rank > 0 && tm.rank < 4) seen = `I can see ${nice(theme)} in there, but my first guess was ${nice(tm.top)}.`;
-  else if (tm.rank >= 4) seen = `Honestly it looked more like ${nice(tm.top)} to me than ${nice(theme)}.`;
-  else seen = 'I scored this one mostly on effort.';
-  let tip;
-  if (f.filled >= 30 && Q < 3) tip = 'Tip: slow down and draw one clear shape first, then colour it in.';
-  else if (f.filled < 140) tip = 'Tip: fill more of the canvas so your drawing is bigger.';
-  else if (f.colors < 4) tip = 'Tip: use a few more colors.';
-  else if (f.outline < 20) tip = 'Tip: a dark outline makes shapes pop.';
-  else if (tm.rank !== 0) tip = `Tip: use the colors and shapes people expect from ${nice(theme)}.`;
-  else if (Q < 7) tip = 'Tip: clean up the edges and add a darker outline so the shapes read clearly.';
-  else if (Q < 9) tip = 'Tip: a detailed background is what turns a good drawing into a 10.';
-  else tip = 'Clean work, keep it up!';
+  const {f, M, Q} = judgeRaw(grid, theme), acc = accuracyOf(grid, theme);
+  const nice = t => t.charAt(0) + t.slice(1).toLowerCase(), an = /^[AEIOU]/.test(theme) ? 'an' : 'a';
+  const cnt = new Array(32).fill(0); for (const v of grid) cnt[v]++;
+  // a plain background: one colour fills most of it, runs along the bottom, and has no stars, snow or clouds on it
+  const n = Math.round(Math.sqrt(grid.length)), dom = cnt.indexOf(Math.max(...cnt));
+  let bottom = 0, specks = 0; for (let x = 0; x < n; x++) if (grid[(n - 1) * n + x] === dom) bottom++;
+  for (let y = 1; y < n - 1; y++) for (let x = 1; x < n - 1; x++){ const i = y * n + x; if (grid[i] !== dom && grid[i - 1] === dom && grid[i + 1] === dom && grid[i - n] === dom && grid[i + n] === dom) specks++; }
+  const plainBg = cnt[dom] > grid.length * .5 && bottom > n * .8 && specks < 6;
+  const tips = [];
+  if (f.filled < 30) tips.push('Start by drawing the main shape, then colour it in.');
+  else {
+    if (Q < 3) tips.push('Slow down and draw one clear shape first, then colour it in.');
+    if (f.filled < 140) tips.push('Make it bigger so it fills more of the canvas.');
+    if ((M || 0) < .6) tips.push(`Focus on what makes ${an} ${nice(theme)} recognisable: its main shape and the colours people expect.`);
+    if (f.colors < 4) tips.push('Use a few more colours.');
+    if (f.outline < 20) tips.push('Add a dark outline so the shapes stand out.');
+    if (Q < 7) tips.push('Clean up the edges so the shapes look neat.');
+    if (plainBg) tips.push('Add a background, like sky, ground or a scene, so it feels finished.');
+    else if (Q < 9) tips.push('Add small details like highlights and shading.');
+  }
   const title = score >= 9 ? 'Masterpiece' : score >= 7 ? 'Nice Work' : score >= 5 ? 'Getting There' : score >= 3 ? 'Rough Sketch' : 'Uh Oh';
-  return {title, comment:seen + ' ' + tip};
+  return {title, acc, comment:tips.length ? 'To improve: ' + tips.slice(0, 2).join(' ') : 'Great work. There is not much left to improve!'};
 }
 
 // ---------- background canvas ----------
@@ -2586,22 +2597,23 @@ const decDr = dr => dr.n === 64 ? decAny(dr.e, 4096) : decGrid(dr.e || dr.d);
 $('jRate').onclick = async () => {
   if (!pracArt) return; auInit();
   $('jRate').disabled = true;
-  let score = 0, title = '', comment = '', ai = false;
+  let score = 0, title = '', comment = '', ai = false, acc = null;
   if (blankCanvas(pracArt.grid)){ score = 1; title = 'The Void'; comment = 'A bold statement. Next time try putting some pixels on it.'; }
   else if (SAMPLE){
     $('jHead').textContent = 'AI JUDGE'; $('jText').textContent = 'Squinting at your pixels…'; SFX.roll();
     try {
       const blob = await gridToBlob(pracArt.grid, pracArt.pal, 256);
-      const out = await SAMPLE.json(`You are the judge in a pixel art game played by teens. The theme was "${pracArt.theme}". The attached image is a ${sizeTxt(pracArt.grid)} pixel drawing made against a timer. Score it from 1 to 10 for how clearly it shows the theme and how well it's drawn. ${AI_SCALE} Be honest, and playful in the comment. Reply with JSON only: {"score": integer 1-10, "title": "a funny 2-5 word title for the piece", "comment": "one or two short sentences about specific things you see, with one tip to improve"}`, {images:[blob], modelTier:'quick'});
-      score = clamp(Math.round(+out.score || 5), 1, 10); title = String(out.title || 'Untitled').slice(0, 48); comment = String(out.comment || '').slice(0, 280); ai = true;
+      const out = await SAMPLE.json(`You are the judge in a pixel art game played by teens. The theme was "${pracArt.theme}". The attached image is a ${sizeTxt(pracArt.grid)} pixel drawing made against a timer. Score it from 1 to 10 for how clearly it shows the theme and how well it's drawn. ${AI_SCALE} Be honest, and playful in the comment. Reply with JSON only: {"score": integer 1-10, "title": "a funny 2-5 word title for the piece", "accuracy": integer 0-100 for how accurately it shows the theme, "comment": "one or two short sentences on what they could improve next time. Don't say what else it looks like"}`, {images:[blob], modelTier:'quick'});
+      score = clamp(Math.round(+out.score || 5), 1, 10); title = String(out.title || 'Untitled').slice(0, 48); comment = String(out.comment || '').slice(0, 280); acc = Number.isFinite(+out.accuracy) ? clamp(Math.round(+out.accuracy), 0, 100) : null; ai = true;
     } catch(e){
       if (e && e.code === 'rate_limited'){ $('jText').textContent = 'The AI judge is busy. Tap again in a moment.'; $('jRate').disabled = false; $('jRate').textContent = 'TRY AGAIN'; return; }
       if (e && (e.code === 'not_granted' || e.code === 'images_unavailable')) SAMPLE = null;
     }
   }
-  if (!score){ score = judge(pracArt.grid, mulberry(Date.now() & 0xffff), pracArt.theme); const bv = botVerdict(pracArt.grid, pracArt.theme, score); title = bv.title; comment = bv.comment; }
+  if (!score){ score = judge(pracArt.grid, mulberry(Date.now() & 0xffff), pracArt.theme); const bv = botVerdict(pracArt.grid, pracArt.theme, score); title = bv.title; comment = bv.comment; acc = bv.acc; }
+  if (acc === null) acc = accuracyOf(pracArt.grid, pracArt.theme);
   $('jHead').textContent = ai ? `AI JUDGE: “${title}”` : `“${title}”`;
-  $('jScore').textContent = `${score} / 10`; $('jText').textContent = comment;
+  $('jScore').textContent = `${score} / 10`; $('jText').textContent = `Accuracy: ${acc}%\n${comment}`;
   if (score >= 8){ confetti(120); SFX.fanfare(); } else SFX.land();
   const isBest = score > (prof.best || 0); if (isBest){ prof.best = score; prof.bestTheme = pracArt.theme; }
   // XP
