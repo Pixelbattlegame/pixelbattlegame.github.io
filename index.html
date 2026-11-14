@@ -277,6 +277,7 @@ h2{font-family:var(--display);font-weight:400;font-size:20px;margin:0;line-heigh
 @media (max-width:540px){ .tips{grid-template-columns:1fr 1fr} .mode.big b{font-size:15px} .mode b{font-size:12px} .code{font-size:30px} .podium{gap:6px} .pod .place{font-size:13px} }
 @media (prefers-reduced-motion: reduce){ .reel.land{animation:none} .timer.hot{animation:none} }
 .joinmsg{margin-top:8px;font-size:13px;line-height:1.4;color:var(--muted,#94b0c2)}.joinmsg.bad{color:#ff7a7a}
+.namemsg{margin-top:6px;font-size:11px;line-height:1.4;color:#ff7a7a}
 html{-webkit-text-size-adjust:100%}
 body{margin:0}
 </style>
@@ -297,6 +298,7 @@ body{margin:0}
         <div style="flex:1;min-width:0;display:grid;gap:4px">
           <label class="lbl" for="nameIn">Your name</label>
           <input type="text" id="nameIn" maxlength="12" placeholder="Type a name" autocomplete="off" spellcheck="false">
+          <div class="namemsg" id="nameMsg" role="status" aria-live="polite" hidden>That name isn't allowed. Pick another one.</div>
         </div>
       </div>
       <div class="lvl">LV <span id="lvl">1</span><div class="xpbar"><i id="xpFill"></i></div><span id="xpTxt" style="color:var(--s);font-size:8px"></span></div>
@@ -550,8 +552,32 @@ if (!PALS[prof.pal]) prof.pal = 'pico';
 prof.unl = ['pico']; prof.pal = 'pico';
 const saveProf = () => store.set('prof', prof);
 function levelOf(xp){ let l = 1, need = 120; while (xp >= need){ xp -= need; l++; need += 40; } return {l, cur:xp, need}; }
-const cleanName = s => { let o = ''; for (const ch of String(s || '')){ const c = ch.charCodeAt(0); if (c >= 32 && '<>"`\\'.indexOf(ch) < 0 && !(c >= 0x7f && c < 0xa0) && !(c >= 0x200b && c <= 0x206f)) o += ch; } return o.trim().slice(0, 12); };
-const myName = () => cleanName(prof.name) || 'You';
+// ---------- keeping it friendly: names, guesses and room codes ----------
+// keeps names, guesses and messages friendly. The word lists are stored scrambled (ROT13) so they don't sit readable in the page.
+const ROT = s => s.replace(/[a-z]/g, c => String.fromCharCode((c.charCodeAt(0) - 97 + 13) % 26 + 97));
+const BADW = {"a": ["shpx", "shx", "spx", "cuhpx", "fuvg", "ovgpu", "ovngpu", "phag", "avttre", "avttn", "avtn", "avtt", "snttbg", "sntbg", "sntt", "ergneq", "juber", "chffl", "chffvrf", "cravf", "intvan", "cbea", "qvyqb", "oybjwbo", "unaqwbo", "wvmm", "zbgures", "pbpxfhpx", "nffubyr", "qvpxurnq", "ohyyfuvg", "fyhg", "fxnax", "gjng", "uragnv", "zbyrfg", "crqbcuvy", "crqbsvy", "vaprfg", "anmv", "uvgyre", "xxx", "xvyylbhefrys", "xvyyhefrys", "genaal", "puvax", "xvxr", "jrgonpx", "ornare", "tbbx", "enturnq", "gbjryurnq", "obbof", "gvggvrf", "betnfz", "rerpgvba", "rwnphy", "znfgheo", "pyvg", "grfgvpyr", "fpebghz", "ahqrf", "cunpx", "cuhx"], "w": ["nff", "nefr", "nffrf", "snt", "sntf", "phz", "gvg", "gvgf", "ubr", "ubrf", "encr", "encrq", "encvat", "encrf", "qvpx", "qvpxf", "pbpx", "pbpxf", "chffl", "fug", "ohggubyr", "cvff", "cvffrq", "gubg", "zvys", "qvys", "snc", "afsj", "fgsh", "ow", "fhvpvqr", "xzf", "xlf", "pbba", "pbbaf", "fcvp", "fcvpx", "qlxr", "ubeal", "jnax", "jnaxre", "frk", "frkl", "nany", "nahf", "ahqr", "anxrq", "obbo", "obare", "encvfg", "encvfgf"]};
+const BAD_ANY = BADW.a.map(ROT), BAD_WORD = new Set(BADW.w.map(ROT));
+const LEET = {'0':'o', '1':'i', '!':'i', '|':'i', '3':'e', '4':'a', '@':'a', '5':'s', '$':'s', '7':'t', '+':'t', '8':'b', '9':'g', '6':'g', '€':'e', '¡':'i'};
+const OK_WORDS = ['scunthorpe', 'shiitake', 'shitake', 'matsushita', 'therapist', 'shihtzu', 'shitzu', 'cockpit', 'peacock', 'hancock', 'raccoon', 'cocktail', 'analys', 'canal', 'banal', 'sussex', 'essex', 'middlesex', 'dickens', 'grape', 'drape', 'skyscraper'];
+const deLeet = s => String(s || '').normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[0-9!|@$+€¡]/g, c => LEET[c] || c);
+const squeeze = (s, n) => s.replace(n === 1 ? /(.)\1+/g : /(.)\1{2,}/g, n === 1 ? '$1' : '$1$1');
+function isRude(text){
+  const t = deLeet(text);
+  // whole words ("ass" but not "class")
+  for (const w of t.split(/[^a-z]+/)) if (w && (BAD_WORD.has(w) || BAD_WORD.has(squeeze(w, 2)) || BAD_WORD.has(squeeze(w, 1)))) return true;
+  // hidden in other letters or spaced out ("f u c k", "xXfuckXx", "fuuuck")
+  // normal words that happen to contain a bad one
+  let flat = t.replace(/[^a-z]/g, ''); for (const ok of OK_WORDS) flat = flat.split(ok).join('-');
+  const forms = [flat, squeeze(flat, 2), squeeze(flat, 1)];
+  for (const f of forms) for (const w of BAD_ANY) if (f.includes(w)) return true;
+  // spaced-out short words: "a s s", "s.e.x"
+  const letters = t.match(/\b[a-z]\b/g); if (letters && letters.length >= 2){ const j = t.replace(/\b([a-z])\b[^a-z]*/g, '$1').split(/[^a-z]+/); for (const w of j) if (BAD_WORD.has(w) || BAD_WORD.has(squeeze(w, 1))) return true; }
+  return false;
+}
+// a name that isn't allowed shows up as no name, so everyone sees "Artist" instead
+const cleanName = s => { let o = ''; for (const ch of String(s || '')){ const c = ch.charCodeAt(0); if (c >= 32 && '<>"`\\'.indexOf(ch) < 0 && !(c >= 0x7f && c < 0xa0) && !(c >= 0x200b && c <= 0x206f)) o += ch; } const n = o.trim().slice(0, 12); return isRude(n) ? '' : n; };
+// players with no name get a stable "Artist 12"-style name instead of showing up as "You" to everyone else
+const myName = () => cleanName(prof.name) || ('Artist ' + (prof.anon || (prof.anon = 10 + Math.floor(Math.random() * 90))));
 
 // ---------- audio ----------
 const AU = {c:null, m:null, mus:null, nb:null, muted:!!store.get('muted', false)};
@@ -602,7 +628,7 @@ function setMute(m){ AU.muted = m; store.set('muted', m); if (AU.m) AU.m.gain.va
 // ---------- art encoding & rendering ----------
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 function encGrid(g){ let bytes = '', acc = 0, bits = 0; for (let i = 0; i < CELLS; i++){ acc = (acc << 5) | (g[i] & 31); bits += 5; while (bits >= 8){ bits -= 8; bytes += String.fromCharCode((acc >> bits) & 255); } acc &= (1 << bits) - 1; } return btoa(bytes); }
-const GAME_V = 9;   // bump when online data changes in a way older copies can't read; versions never share rooms or matchmaking
+const GAME_V = 10;   // bump when online data changes in a way older copies can't read; versions never share rooms or matchmaking
 const roomName = code => 'pixelbattle' + GAME_V + '-' + String(code).toLowerCase();
 function decGrid(s){ const g = new Uint8Array(CELLS); try { const b = atob(String(s || '')); if (b.length <= CELLS / 2){ for (let i = 0; i < CELLS / 2 && i < b.length; i++){ const v = b.charCodeAt(i); g[i * 2] = v >> 4; g[i * 2 + 1] = v & 15; } } else { let acc = 0, bits = 0, k = 0; for (let i = 0; i < b.length && k < CELLS; i++){ acc = (acc << 8) | b.charCodeAt(i); bits += 8; while (bits >= 5 && k < CELLS){ bits -= 5; g[k++] = (acc >> bits) & 31; } acc &= (1 << bits) - 1; } } } catch(e){} return g; }
 function drawGrid(canvas, grid, palId, opts = {}){
@@ -2639,7 +2665,7 @@ function refreshMenu(){
   const tr = tierOf(prof.rp); $('rkName').textContent = tr.name; $('rkName').style.color = tr.col; $('rkFill').style.width = tr.pct + '%'; $('rkFill').style.background = tr.col; $('rkTxt').textContent = `${prof.rp} RP`;
   $('rankSub').innerHTML = numify(`${tr.name} · ${prof.rp} RP. Place high to climb.`);
 }
-$('nameIn').addEventListener('input', e => { prof.name = cleanName(e.target.value); saveProf(); if (NET.room) NET.room.presence({nm:myName()}).catch(() => {}); });
+$('nameIn').addEventListener('input', e => { const raw = String(e.target.value || '').trim(), bad = !!raw && isRude(raw); $('nameMsg').hidden = !bad; prof.name = bad ? '' : cleanName(raw); saveProf(); if (NET.room) NET.room.presence({nm:myName()}).catch(() => {}); });
 
 const OFFLINE = true;
 async function saveBlob(blob, filename){
@@ -2651,9 +2677,11 @@ async function saveBlob(blob, filename){
 // ---------- online play for the file version: free public relay servers (no sign-up) ----------
 // Claude's room servers only exist inside Claude, so the file version talks to free public MQTT relays instead.
 // Every player connects to all of them at once, so two players only need one relay in common.
-// Each player's state is stored on the relay as a "retained" message; when a player disconnects,
-// the relay clears it automatically (MQTT "last will"). This exposes the same room interface the game
-// already uses: presence(patch), peers(), onPeers(fn, onLost), join(name), leave().
+// One connection per relay carries everything (the lobby and any room), so a player never has more than
+// one connection to each relay, however many rooms they join and leave.
+// Each player's state in a room is stored on the relay as a "retained" message. Each player also keeps an
+// "online" flag; when their connection drops, the relay clears it (MQTT "last will"), and everyone drops them.
+// This exposes the same room interface the game already uses: presence(patch), peers(), onPeers(fn, onLost), join(name), leave().
 const RELAYS = window.PB_RELAYS || ['wss://mqtt.eclipseprojects.io/mqtt', 'wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt'];
 const RELAY_NS = 'pixelbattle-gw/v' + GAME_V + '/';   // each game version gets its own space, so old copies never meet new ones
 const RELAY_ME = (Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 8) + '000000000000').slice(0, 12);
@@ -2672,6 +2700,7 @@ function mqttConn(url, clientId, willTopic, on){
   const subPkt = f => mPkt(0x82, u8cat([Uint8Array.of(0, 1), mStr(f), Uint8Array.of(0)]));
   c.publish = (topic, payload, retain) => { if (c.ok) send(mPkt(0x30 | (retain ? 1 : 0), u8cat([mStr(topic), TXE.encode(payload)]))); };
   c.subscribe = f => { if (!c.subs.includes(f)) c.subs.push(f); if (c.ok) send(subPkt(f)); };
+  c.unsubscribe = f => { const k = c.subs.indexOf(f); if (k < 0) return; c.subs.splice(k, 1); if (c.ok) send(mPkt(0xA2, u8cat([Uint8Array.of(0, 2), mStr(f)]))); };
   c.close = () => { c.closed = true; clearInterval(ping); clearTimeout(cto); if (c.ok) send(Uint8Array.of(0xE0, 0)); c.ok = false; const ws = c.ws; c.ws = null; if (ws) setTimeout(() => { try { ws.close(); } catch(e){} }, 50); };
   const parse = () => {
     for (;;){
@@ -2706,13 +2735,55 @@ function mqttConn(url, clientId, willTopic, on){
   return c;
 }
 
-function relayJoin(name){
+// ---- the shared connections ----
+const RELAY_ON = RELAY_NS + 'on/';                 // RELAY_ON + id = that player's online flag
+const RL = {conns:null, handlers:new Map(), watch:RELAYS.map(() => new Map()), downT:0};
+const relayUp = () => RL.conns && RL.conns.some(c => c.ok);
+window.__relay = {RL, rooms: RELAY_ROOMS};
+function relayConns(){
+  if (RL.conns) return RL.conns;
+  RL.conns = RELAYS.map((url, i) => {
+    const c = mqttConn(url, ('pb' + RELAY_ME + i.toString(36)).slice(0, 23), RELAY_ON + RELAY_ME, {
+      up(){ clearTimeout(RL.downT); RL.downT = 0; c.publish(RELAY_ON + RELAY_ME, '{"t":' + Date.now() + '}', true); RL.handlers.forEach(h => h.up(i)); },
+      down(){ RL.handlers.forEach(h => h.down(i)); },
+      msg(topic, text, retained){
+        if (topic.startsWith(RELAY_ON)){ relayOnline(i, topic.slice(RELAY_ON.length), !!text); return; }
+        const k = topic.indexOf('/', RELAY_NS.length), h = k > 0 && RL.handlers.get(topic.slice(0, k));
+        if (h) h.msg(i, topic, text, retained);
+      }
+    });
+    return c;
+  });
+  return RL.conns;
+}
+// online flags: when a player shows up in any room, watch their flag; if it is missing or gets cleared, they are gone
+function relayWatch(i, id){
+  const w = RL.watch[i]; let e = w.get(id);
+  if (!e){ e = {on:null, offT:0}; w.set(id, e); RL.conns[i].subscribe(RELAY_ON + id);
+    // no flag within a few seconds = a tab that crashed long ago left its state behind
+    e.chk = setTimeout(() => { if (e.on === null) relayGone(i, id, true); }, 5000); }
+  return e;
+}
+function relayOnline(i, id, on){
+  const e = RL.watch[i].get(id); if (!e) return;
+  clearTimeout(e.chk);
+  if (on){ const was = e.on; e.on = true; clearTimeout(e.offT); e.offT = 0; if (was !== true) RL.handlers.forEach(h => h.flag(i, id)); return; }
+  // the flag was cleared: their connection dropped. Keep them a few seconds in case it was a wifi blip
+  const first = e.on === null; e.on = false;
+  if (first){ relayGone(i, id, true); return; }
+  if (!e.offT) e.offT = setTimeout(() => { e.offT = 0; if (e.on === false) relayGone(i, id, false); }, 8000);
+}
+function relayGone(i, id){ RL.handlers.forEach(h => h.gone(i, id)); }
+
+function relayJoin(name, opt = {}){
   return new Promise((resolve, reject) => {
     const rn = RELAY_NS + String(name).toLowerCase().replace(/[^a-z0-9-]/g, ''), base = rn + '/p/', dbase = rn + '/d/', myTopic = base + RELAY_ME, myDr = dbase + RELAY_ME;
+    if (RL.handlers.has(rn)){ const old = RL.handlers.get(rn); old.room.leave(); }
     // a player's drawing ('dr') is big, so it travels on its own channel and is only re-sent when it changes
     let mine = {}, alive = true, lastPub = 0, lastAny = 0, lastMain = '', lastDr = '', pubT = 0, settled = false, downT = 0, helloT = 0, lastHello = 0;
-    // someone new showed up: send my state again right away so they see me without waiting for the next heartbeat
-    const hello = () => { if (helloT || !alive) return; helloT = setTimeout(() => { helloT = 0; if (!alive) return; lastHello = Date.now(); publish(true); }, Math.max(150 + Math.random() * 350, 1500 - (Date.now() - lastHello))); };
+    // someone new showed up in a small room: send my state again right away so they see me without waiting for the next heartbeat
+    // (not in the big lobby, where everyone answering everyone would flood the relays)
+    const hello = () => { if (opt.quiet || helloT || !alive) return; helloT = setTimeout(() => { helloT = 0; if (!alive) return; lastHello = Date.now(); publish(true); }, Math.max(150 + Math.random() * 350, 1500 - (Date.now() - lastHello))); };
     const per = RELAYS.map(() => new Map()), drs = RELAYS.map(() => new Map()), listeners = new Set(), lost = new Set();
     let merged = new Map(), snap = [], pend = {joined:[], left:[], updated:[]}, sch = 0;
     const self = () => ({peer:RELAY_ME, presence:mine, isMe:true, sameTab:true, updatedAt:Date.now()});
@@ -2720,7 +2791,8 @@ function relayJoin(name){
     const notify = () => { if (!sch) sch = setTimeout(flush, 20); };
     const rebuild = () => {
       const next = new Map();
-      per.forEach(m => m.forEach((e, id) => { const cur = next.get(id); if (!cur || e.s > cur.s) next.set(id, {peer:id, p:e.p, s:e.s, at:e.at}); }));
+      // only players whose online flag is up (or who dropped a few seconds ago and may be back) are listed
+      per.forEach((m, i) => m.forEach((e, id) => { const w = RL.watch[i].get(id); if (!w || !(w.on || w.offT)) return; const cur = next.get(id); if (!cur || e.s > cur.s) next.set(id, {peer:id, p:e.p, s:e.s, at:e.at}); }));
       for (const [id, e] of next){ let d = null; drs.forEach(m => { const x = m.get(id); if (x && (!d || x.s > d.s)) d = x; }); e.presence = d ? Object.assign({}, e.p, {dr:d.v}) : e.p; e.k = e.s + '|' + (d ? d.s : 0); }
       for (const [id, e] of next){ const old = merged.get(id); if (!old) pend.joined.push(e); else if (old.k !== e.k) pend.updated.push(e); }
       for (const [id, e] of merged) if (!next.has(id)) pend.left.push(e);
@@ -2728,56 +2800,61 @@ function relayJoin(name){
     };
     const split = () => { const rest = Object.assign({}, mine), dr = rest.dr; delete rest.dr; return [JSON.stringify(rest), dr === undefined ? '' : JSON.stringify(dr)]; };
     const mainMsg = main => '{"s":' + (++relaySeq) + ',"t":' + Date.now() + ',"p":' + main + '}', drMsg = dr => dr ? '{"s":' + (++relaySeq) + ',"t":' + Date.now() + ',"v":' + dr + '}' : '';
+    const conns = relayConns();
     const publish = force => {
+      if (!alive) return;
       lastAny = Date.now(); clearTimeout(pubT); pubT = 0; const [main, dr] = split();
       if (force === true || main !== lastMain){ lastMain = main; lastPub = Date.now(); const msg = mainMsg(main); conns.forEach(c => c.publish(myTopic, msg, true)); }
       if (dr !== lastDr){ lastDr = dr; const msg = drMsg(dr); conns.forEach(c => c.publish(myDr, msg, true)); }
     };
     const schedulePub = () => { if (pubT) return; const wait = Math.max(0, 150 - (Date.now() - lastAny)); pubT = setTimeout(publish, wait); };
-    const anyUp = () => conns.some(c => c.ok);
-    const conns = RELAYS.map((url, i) => {
-      let upAt = 0;
-      const c = mqttConn(url, ('pb' + RELAY_ME + (++relayConnN).toString(36)).slice(0, 23), myTopic, {
-        up(){
-          upAt = Date.now(); clearTimeout(downT); downT = 0;
-          { const [main, dr] = split(); c.publish(myTopic, mainMsg(main), true); if (dr) c.publish(myDr, drMsg(dr), true); }
-          // anything this relay still lists from before a reconnect and doesn't re-send soon is gone
-          const before = [...per[i].keys()];
-          setTimeout(() => { let ch = false; for (const id of before){ const e = per[i].get(id); if (e && e.at < upAt){ per[i].delete(id); ch = true; } } if (ch) rebuild(); }, 3500);
-          if (!settled){ settled = true; RELAY_ROOMS.add(room); resolve(room); }
-        },
-        down(){
-          if (!anyUp() && settled && !downT) downT = setTimeout(() => { downT = 0; if (alive && !anyUp()) lost.forEach(f => { try { f({code:'disconnected'}); } catch(e){} }); }, 20000);
-        },
-        msg(topic, text, retained){
-          if (!alive) return;
-          if (topic.startsWith(dbase)){
-            const id = topic.slice(dbase.length); if (!id || id === RELAY_ME || id.includes('/')) return;
-            if (!text){ if (drs[i].delete(id)) rebuild(); return; }
-            let m; try { m = JSON.parse(text); } catch(e){ return; }
-            if (!m || typeof m.s !== 'number' || typeof m.v !== 'object' || m.v === null) return;
-            if (retained && Date.now() - (+m.t || 0) > 1800000 && !per[i].has(id)){ c.publish(topic, '', true); return; }   // leftover from a crashed tab
-            drs[i].set(id, {s:m.s, v:m.v}); rebuild(); return;
-          }
-          if (!topic.startsWith(base)) return;
-          const id = topic.slice(base.length);
-          if (!id || id === RELAY_ME || id.includes('/')) return;
-          // cleared state = the player's connection dropped; keep them listed for a few seconds in case it was a wifi blip
-          if (!text){ const e = per[i].get(id); if (e && !e.gone){ e.gone = Date.now(); setTimeout(() => { const x = per[i].get(id); if (x && x.gone && Date.now() - x.gone >= 7900){ per[i].delete(id); if (drs[i].delete(id)) c.publish(dbase + id, '', true); rebuild(); } }, 8000); } return; }
+    const h = {
+      up(i){
+        if (!alive) return;
+        const c = conns[i], upAt = Date.now(); clearTimeout(downT); downT = 0;
+        { const [main, dr] = split(); c.publish(myTopic, mainMsg(main), true); if (dr) c.publish(myDr, drMsg(dr), true); }
+        // anything this relay still lists from before a reconnect and doesn't re-send soon is gone
+        const before = [...per[i].keys()];
+        setTimeout(() => { if (!alive) return; let ch = false; for (const id of before){ const e = per[i].get(id); if (e && e.at < upAt){ per[i].delete(id); ch = true; } } if (ch) rebuild(); }, 3500);
+        if (!settled){ settled = true; resolve(room); }
+      },
+      down(){
+        if (!relayUp() && settled && !downT && alive) downT = setTimeout(() => { downT = 0; if (alive && !relayUp()) lost.forEach(f => { try { f({code:'disconnected'}); } catch(e){} }); }, 20000);
+      },
+      flag(i, id){ if (alive && per[i].has(id)) rebuild(); },
+      gone(i, id){
+        if (!alive || !per[i].has(id) && !drs[i].has(id)) return;
+        per[i].delete(id); const hadDr = drs[i].delete(id);
+        // whoever notices clears what a dropped or crashed tab left behind, so nobody who joins later sees a ghost player
+        conns[i].publish(base + id, '', true); if (hadDr) conns[i].publish(dbase + id, '', true);
+        rebuild();
+      },
+      msg(i, topic, text, retained){
+        if (!alive) return;
+        const c = conns[i];
+        if (topic.startsWith(dbase)){
+          const id = topic.slice(dbase.length); if (!id || id === RELAY_ME || id.includes('/')) return;
+          if (!text){ if (drs[i].delete(id)) rebuild(); return; }
           let m; try { m = JSON.parse(text); } catch(e){ return; }
-          if (m && m.bye === 1){ drs[i].delete(id); if (per[i].delete(id)) rebuild(); return; }   // left on purpose
-          if (!m || typeof m.p !== 'object' || m.p === null || Array.isArray(m.p) || typeof m.s !== 'number') return;
-          const age = Date.now() - (+m.t || 0);
-          if (retained && age > 120000){ if (age > 600000) c.publish(topic, '', true); return; }   // leftover from a crashed tab
-          if (!retained && !per[i].has(id) && !merged.has(id)) hello();
-          per[i].set(id, {p:m.p, s:m.s, at:Date.now()}); rebuild();
+          if (!m || typeof m.s !== 'number' || typeof m.v !== 'object' || m.v === null) return;
+          relayWatch(i, id); drs[i].set(id, {s:m.s, v:m.v}); rebuild(); return;
         }
-      });
-      c.subscribe(base + '+'); c.subscribe(dbase + '+');
-      return c;
-    });
-    const beat = setInterval(() => { if (Date.now() - lastPub > 20000) publish(true); }, 5000);
-    const sweep = setInterval(() => { let ch = false; per.forEach((m, i) => { if (!conns[i].ok) return; for (const [id, e] of m) if (Date.now() - e.at > 70000){ m.delete(id); ch = true; } }); if (ch) rebuild(); }, 10000);
+        if (!topic.startsWith(base)) return;
+        const id = topic.slice(base.length);
+        if (!id || id === RELAY_ME || id.includes('/')) return;
+        if (!text){ if (per[i].delete(id)){ drs[i].delete(id); rebuild(); } return; }
+        let m; try { m = JSON.parse(text); } catch(e){ return; }
+        if (m && m.bye === 1){ drs[i].delete(id); if (per[i].delete(id)) rebuild(); return; }   // left on purpose
+        if (!m || typeof m.p !== 'object' || m.p === null || Array.isArray(m.p) || typeof m.s !== 'number') return;
+        const w = relayWatch(i, id);
+        if (w.on === false && !w.offT) return;   // a player whose connection is already gone
+        if (!retained && !per[i].has(id) && !merged.has(id)) hello();
+        per[i].set(id, {p:m.p, s:m.s, at:Date.now()}); rebuild();
+      }
+    };
+    const beat = setInterval(() => { if (Date.now() - lastPub > (opt.quiet ? 40000 : 20000)) publish(true); }, 5000);
+    const sweep = setInterval(() => { let ch = false; per.forEach((m, i) => { if (!conns[i].ok) return; for (const [id, e] of m) if (Date.now() - e.at > (opt.quiet ? 130000 : 70000)){ m.delete(id); ch = true; } }); if (ch) rebuild(); }, 10000);
+    const stop = () => { alive = false; RL.handlers.delete(rn); RELAY_ROOMS.delete(room); clearInterval(beat); clearInterval(sweep); clearTimeout(pubT); clearTimeout(downT); clearTimeout(sch); clearTimeout(helloT); conns.forEach(c => { c.unsubscribe(base + '+'); c.unsubscribe(dbase + '+'); }); };
     const room = {
       presence: async patch => {
         if (!alive) return;
@@ -2789,27 +2866,30 @@ function relayJoin(name){
       },
       peers: () => snap,
       onPeers: (fn, onLost) => { listeners.add(fn); if (onLost) lost.add(onLost); setTimeout(() => { if (alive && listeners.has(fn)) fn({peers:snap, joined:snap, left:[], updated:[]}); }, 0); return () => { listeners.delete(fn); if (onLost) lost.delete(onLost); }; },
-      connected: () => anyUp(),
+      connected: () => relayUp(),
       join: n => relayJoin(n),
       leave: async () => {
-        if (!alive) return; alive = false; RELAY_ROOMS.delete(room);
-        clearInterval(beat); clearInterval(sweep); clearTimeout(pubT); clearTimeout(downT); clearTimeout(sch); clearTimeout(helloT);
-        conns.forEach(c => { c.publish(myTopic, '{"bye":1}', false); c.publish(myTopic, '', true); if (lastDr) c.publish(myDr, '', true); c.close(); });
-        listeners.clear(); lost.clear();
+        if (!alive) return;
+        conns.forEach(c => { c.publish(myTopic, '{"bye":1}', false); c.publish(myTopic, '', true); if (lastDr) c.publish(myDr, '', true); });
+        stop(); listeners.clear(); lost.clear();
       }
     };
+    h.room = room; RL.handlers.set(rn, h); RELAY_ROOMS.add(room);
     snap = [self()];
-    setTimeout(() => { if (!settled){ settled = true; alive = false; clearInterval(beat); clearInterval(sweep); conns.forEach(c => c.close()); reject({code:'unreachable'}); } }, 10000);
+    conns.forEach(c => { c.subscribe(base + '+'); c.subscribe(dbase + '+'); });
+    conns.forEach((c, i) => { if (c.ok) h.up(i); });
+    setTimeout(() => { if (!settled){ settled = true; stop(); reject({code:'unreachable'}); } }, 10000);
   });
 }
-window.addEventListener('pagehide', () => { RELAY_ROOMS.forEach(r => r.leave()); });
+// closing the page: leave every room and clear my online flag, then hang up
+window.addEventListener('pagehide', () => { RELAY_ROOMS.forEach(r => r.leave()); if (RL.conns) RL.conns.forEach(c => { c.publish(RELAY_ON + RELAY_ME, '', true); c.close(); }); RL.conns = null; });
 
 // ---------- online ----------
 const NET = {rps:{}, pk:null, last:null, hcfg:null, hg:0, hostLostAt:0, hostPeer:'', ranked:false, noPen:false, room:null, ok:false, named:null, code:'', host:false, mid:'', hadHost:false, joinTimer:0, lobbyPeers:[], cfg:{max:8, bots:0, time:120}, cache:{}, bots:null, theme:'', lastDr:'', lastDrT:0, ready:false, myVotes:{}, phase:'', vi:-1, endAt:0, resShown:''};
 let DL = null, SAMPLE = null;
 async function capsInit(){
   const use = n => (window.claude && typeof window.claude.use === 'function') ? window.claude.use(n).catch(() => null) : Promise.resolve(null);
-  const [r, d, s] = await Promise.all([relayJoin('lobby').catch(() => null), use('downloads'), use('sample')]);
+  const [r, d, s] = await Promise.all([relayJoin('lobby', {quiet:true}).catch(() => null), use('downloads'), use('sample')]);
   DL = d || null;
   if (s){ try { const lim = await s.limits(); SAMPLE = lim && lim.images ? s : null; } catch(e){ SAMPLE = null; } }
   if (r){
@@ -2839,7 +2919,7 @@ function renderOpenRooms(){
   list.slice(0, 8).forEach(p => { const o = p.presence.open, b = document.createElement('button'); b.className = 'optbtn'; b.innerHTML = '<div><b></b><span></span></div><span class="pill"></span>'; b.querySelector('b').textContent = `${UP(cleanName(p.presence.nm) || 'Someone')}'S ROOM`; b.querySelector('div span').textContent = `Code ${String(o.c).slice(0, 4).toUpperCase()} · ${o.g ? 'battle in progress' : 'waiting to start'}`; b.querySelector('.pill').textContent = `${clamp(o.n | 0, 1, 12)}/${clamp(o.m | 0, 2, 12)}`; b.onclick = () => joinRoom(String(o.c)); $('openList').appendChild(b); });
 }
 const CODE_CH = 'BCDFGHJKLMNPQRSTVWXZ';
-const genCode = () => Array.from({length:4}, () => CODE_CH[Math.floor(Math.random() * CODE_CH.length)]).join('');
+const genCode = () => { for (;;){ const c = Array.from({length:4}, () => CODE_CH[Math.floor(Math.random() * CODE_CH.length)]).join(''); if (!isRude(c)) return c; } };
 async function hostRoom(max){ if (!NET.ok){ toast('Can\'t reach the game servers right now.'); return; } const code = genCode(); try { const nr = await NET.room.join(roomName(code)); setupNamed(nr, code, true, max); } catch(e){ toast('Could not open a room right now. Try again in a moment.'); } }
 // joining by code: stay on this screen saying "Looking for room…" until the host answers, and say so clearly if nobody does
 function joinMsg(t, bad){ const el = $('joinMsg'); if (!el) return; el.hidden = !t; el.textContent = t || ''; el.classList.toggle('bad', !!bad); }
@@ -3543,7 +3623,7 @@ function chaNextTurn(){
 function chaGuess(key, txt){
   const G = XG, t = G.t; if (!t || G.ph !== 'turn' || key === t.dr || t.ok.has(key)) return;
   const g = normW(txt), w = normW(t.w), nm = (G.pl.find(p => p.key === key) || {}).nm || 'Someone';
-  if (!g) return;
+  if (!g || isRude(txt)) return;
   if (g === w || g === w + 'S' || g + 'S' === w || g === w.replace(/ES$/, '')){
     const secs = (performance.now() - t.start) / 1000, place = t.ok.size; t.ok.set(key, secs);
     // first to guess gets 5, then 4, 3, 2, and 1 for everyone after that
@@ -3587,6 +3667,7 @@ function chaBots(now){
 }
 function chaSend(){
   const v = $('chaIn').value.trim(); if (!v) return; $('chaIn').value = '';
+  if (isRude(v)){ toast('Keep it friendly! That guess wasn\'t sent.'); return; }
   const S = XC.s; if (!S || S.ph !== 'turn' || S.dr === XC.me || (S.ok || []).includes(XC.me)) return;
   if (XG && (appMode === 'xhost' || appMode === 'xlocal')){ chaGuess(XC.me, v); return; }
   XC.gseq++; XC.gl.push([XC.gseq, v.slice(0, 24)]); if (XC.gl.length > 3) XC.gl.shift();
@@ -3614,7 +3695,7 @@ function chaTurnUi(S){
 }
 function chaFeedUi(S){
   const key = JSON.stringify(S.fd); if (key === XC.feedKey) return; XC.feedKey = key;
-  $('chaFeed').innerHTML = (S.fd || []).map(([nm, t, ty]) => `<li class="f-${ty}">${nm ? `<b>${esc(nm)}</b> ` : ''}${esc(t)}</li>`).join('') || '<li class="f-sys">Guesses show up here.</li>';
+  $('chaFeed').innerHTML = (S.fd || []).map(([nm, t, ty]) => `<li class="f-${ty}">${nm ? `<b>${esc(cleanName(nm) || 'Artist')}</b> ` : ''}${esc(isRude(t) ? '***' : t)}</li>`).join('') || '<li class="f-sys">Guesses show up here.</li>';
   const f = $('chaFeed'); f.scrollTop = f.scrollHeight;
   const last = (S.fd || [])[S.fd.length - 1]; if (last && last[2] === 'ok') SFX.unlock(); else if (last && last[2] === 'g') SFX.click(500);
 }
@@ -3783,8 +3864,8 @@ new MutationObserver(ms => { for (const m of ms){ if (m.type === 'characterData'
   if (!numRaf) numRaf = requestAnimationFrame(() => { numRaf = 0; const q = [...numQ]; numQ.clear(); for (const el of q) if (el && el.isConnected && !(el.closest && el.closest('.num'))) numWrap(el); }); })
   .observe(document.body, {childList:true, subtree:true, characterData:true});
 numWrap(document.body);
-window.__pbx = {setMix(v){ RECOG_MIX = v; }, setTta(v){ QTTA = v; }, qualityOf, quality1, recognizeMlp, recognizeCnn, nextTheme, noteTheme, myRecent, JP, features, effortOf, themeMatch, get XG(){ return XG; }, XC, get appMode(){ return appMode; }, get MM(){ return MM; }, encAny, decAny};
-window.__pb = {get GS(){ return GS; }, get NET(){ return NET; }, prof, rankDelta, tierOf, get RES(){ return RES; }, makeArt, makeArtHi, artFor, judgeDown, detailBonus, judge, judgeRaw, JP, recognize, artFeatures, botVerdict, encGrid, decGrid, get mode(){ return appMode; }, ED, BOT_THEMES};
+window.__pbx = {isRude, setMix(v){ RECOG_MIX = v; }, setTta(v){ QTTA = v; }, qualityOf, quality1, recognizeMlp, recognizeCnn, nextTheme, noteTheme, myRecent, JP, features, effortOf, themeMatch, get XG(){ return XG; }, XC, get appMode(){ return appMode; }, get MM(){ return MM; }, encAny, decAny};
+window.__pb = {myName, get GS(){ return GS; }, get NET(){ return NET; }, prof, rankDelta, tierOf, get RES(){ return RES; }, makeArt, makeArtHi, artFor, judgeDown, detailBonus, judge, judgeRaw, JP, recognize, artFeatures, botVerdict, encGrid, decGrid, get mode(){ return appMode; }, ED, BOT_THEMES};
 window.__pbReady = 1; { const w = document.getElementById('jsWarn'); if (w) w.style.display = 'none'; }
 })();
 </script>
