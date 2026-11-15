@@ -1,12 +1,5 @@
-# Pixel Battle
+# Pixel Battle has moved
 
-A pixel art battle game. Everyone gets the same theme, draws it on a 32×32 canvas, then rates each other's drawings from 1 to 10.
+Pixel Battle now lives at **https://pixelbattlegame.com/** (code: [Pixelbattlegame/site](https://github.com/Pixelbattlegame/site)).
 
-**Play:** https://pixelbattlegame.github.io/
-
-- **Quick Play**: you against 5 bot artists
-- **Find Match**: get put in a lobby with real players
-- **Practice**: draw alone and get a score out of 10 from the bot judge
-- **Private Room**: make a room code and play with friends
-
-The whole game is one file, `index.html`. Online games connect through free public relay servers, with no accounts or sign-up.
+This old address forwards every player to the new one and brings their saved progress (level, XP, rank points, name and settings) along with them, because browsers keep saved games separately for each website address.
