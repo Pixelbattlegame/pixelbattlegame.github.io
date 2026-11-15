@@ -280,6 +280,9 @@ h2{font-family:var(--display);font-weight:400;font-size:20px;margin:0;line-heigh
 .namemsg{margin-top:6px;font-size:11px;line-height:1.4;color:#ff7a7a}
 html{-webkit-text-size-adjust:100%}
 body{margin:0}
+.foot a{color:var(--s);text-decoration:underline;text-underline-offset:3px}
+.adslot{margin:14px auto 0;width:100%;max-width:728px;min-height:90px;text-align:center;overflow:hidden}
+.adslot::before{content:"ADVERTISEMENT";display:block;font:400 8px/1 var(--display);letter-spacing:.1em;color:var(--s);opacity:.6;margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -319,7 +322,8 @@ body{margin:0}
       <div><b>3 VOTE</b>Rate every drawing 1–10.</div>
       <div><b>4 WIN</b>Highest average wins. Or practice solo for a score.</div>
     </div>
-    <div class="foot"><span id="netDot"><span class="dot off"></span>Connecting to online…</span></div>
+    <div class="adslot" id="adMenu" hidden></div>
+    <div class="foot"><a href="about.html">How to play</a><a href="privacy.html">Privacy</a><span id="netDot"><span class="dot off"></span>Connecting to online…</span></div>
   </div>
 </section>
 
@@ -503,6 +507,7 @@ body{margin:0}
       <button class="btn pink" id="rFind" hidden>NEW MATCH</button>
       <button class="btn" id="rAgain">PLAY AGAIN</button>
     </div>
+    <div class="adslot" id="adRes" hidden></div>
     <div class="note" id="rWait" hidden>The host picks what happens next.</div>
   </div>
 </section>
@@ -3867,6 +3872,25 @@ numWrap(document.body);
 window.__pbx = {isRude, setMix(v){ RECOG_MIX = v; }, setTta(v){ QTTA = v; }, qualityOf, quality1, recognizeMlp, recognizeCnn, nextTheme, noteTheme, myRecent, JP, features, effortOf, themeMatch, get XG(){ return XG; }, XC, get appMode(){ return appMode; }, get MM(){ return MM; }, encAny, decAny};
 window.__pb = {myName, get GS(){ return GS; }, get NET(){ return NET; }, prof, rankDelta, tierOf, get RES(){ return RES; }, makeArt, makeArtHi, artFor, judgeDown, detailBonus, judge, judgeRaw, JP, recognize, artFeatures, botVerdict, encGrid, decGrid, get mode(){ return appMode; }, ED, BOT_THEMES};
 window.__pbReady = 1; { const w = document.getElementById('jsWarn'); if (w) w.style.display = 'none'; }
+})();
+</script>
+<script>
+// ---------- ads (website only) ----------
+// Paste the AdSense publisher ID (ca-pub-...) and the two ad unit IDs here once AdSense approves the site.
+// While 'client' is empty, no ad code loads and the ad spaces stay hidden.
+// Ads only ever show on the menu and the results screen, never while drawing or voting.
+window.PB_ADS = {client:'', menuSlot:'', resultsSlot:''};
+(function(){
+  const A = window.PB_ADS; if (!A.client) return;
+  const sc = document.createElement('script'); sc.async = true; sc.crossOrigin = 'anonymous';
+  sc.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + encodeURIComponent(A.client); document.head.appendChild(sc);
+  const fill = (id, slot) => { const box = document.getElementById(id); if (!box || !slot || box.dataset.filled) return; box.hidden = false; box.dataset.filled = '1';
+    const ins = document.createElement('ins'); ins.className = 'adsbygoogle'; ins.style.display = 'block'; ins.dataset.adClient = A.client; ins.dataset.adSlot = slot; ins.dataset.adFormat = 'auto'; ins.dataset.fullWidthResponsive = 'true'; box.appendChild(ins);
+    try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch(e){} };
+  // an ad unit has to be on screen (with a width) when it's filled, so each fills the first time its screen shows
+  const when = (sel, fn) => { const el = document.getElementById(sel); if (!el) return; const go = () => { if (!el.hidden && el.offsetWidth > 0){ fn(); ob.disconnect(); } }; const ob = new MutationObserver(go); ob.observe(el, {attributes:true, attributeFilter:['hidden']}); let p = el.parentElement; while (p){ ob.observe(p, {attributes:true, attributeFilter:['hidden']}); p = p.parentElement; } setTimeout(go, 500); };
+  when('scrMenu', () => fill('adMenu', A.menuSlot));
+  when('rBtns', () => fill('adRes', A.resultsSlot));
 })();
 </script>
 </body>
